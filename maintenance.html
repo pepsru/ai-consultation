@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI-консультация — временно на паузе</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #020617;
+      --card-bg: rgba(15,23,42,0.9);
+      --accent: #22c55e;
+      --accent-soft: rgba(34,197,94,0.18);
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --border-soft: rgba(148,163,184,0.35);
+      --shadow-soft: 0 18px 55px rgba(15,23,42,0.85);
+      --radius-xl: 28px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(56,189,248,0.18), transparent 60%),
+        radial-gradient(circle at bottom, rgba(34,197,94,0.22), transparent 55%),
+        var(--bg);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: 100%;
+      max-width: 960px;
+    }
+
+    .card {
+      position: relative;
+      border-radius: var(--radius-xl);
+      background: linear-gradient(
+          135deg,
+          rgba(15,23,42,0.96),
+          rgba(15,23,42,0.94),
+          rgba(15,23,42,0.98)
+        );
+      border: 1px solid var(--border-soft);
+      box-shadow: var(--shadow-soft);
+      padding: 26px 24px 24px;
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -120px;
+      background:
+        radial-gradient(circle at 10% 0, rgba(56,189,248,0.16), transparent 52%),
+        radial-gradient(circle at 90% 100%, rgba(34,197,94,0.2), transparent 58%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .card-inner {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1.45fr) minmax(0, 1.1fr);
+      gap: 24px;
+      align-items: center;
+      z-index: 1;
+    }
+
+    @media (max-width: 800px) {
+      .card-inner {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 11px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.45);
+      color: var(--text-muted);
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .pill-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 6px rgba(34,197,94,0.35);
+    }
+
+    .title {
+      font-size: clamp(26px, 3.1vw, 30px);
+      line-height: 1.1;
+      margin: 0 0 12px;
+      letter-spacing: -0.03em;
+    }
+
+    .title span {
+      color: var(--accent);
+    }
+
+    .subtitle {
+      margin: 0 0 20px;
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.5;
+      max-width: 460px;
+    }
+
+    .bullet {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+      color: var(--text-main);
+      font-size: 14px;
+    }
+
+    .bullet-icon {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--accent);
+      font-size: 11px;
+    }
+
+    .bullet span {
+      color: var(--text-muted);
+    }
+
+    .hint {
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .cta-block {
+      position: relative;
+      border-radius: 22px;
+      padding: 14px 16px 14px 14px;
+      margin-top: 18px;
+      background: radial-gradient(circle at top left, rgba(34,197,94,0.22), transparent 55%);
+      border: 1px solid rgba(34,197,94,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .cta-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 320px;
+    }
+
+    .cta-title {
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .cta-button {
+      flex-shrink: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 18px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 999px;
+      border: none;
+      cursor: pointer;
+      background: #22c55e;
+      color: #022c22;
+      text-decoration: none;
+      box-shadow: 0 10px 30px rgba(34,197,94,0.4);
+      white-space: nowrap;
+    }
+
+    .cta-button span {
+      font-size: 15px;
+    }
+
+    .cta-button:hover {
+      filter: brightness(1.03);
+      transform: translateY(-0.5px);
+    }
+
+    .cta-button:active {
+      transform: translateY(0);
+      box-shadow: 0 6px 18px rgba(34,197,94,0.3);
+    }
+
+    .side {
+      position: relative;
+    }
+
+    .panel {
+      border-radius: 22px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.45);
+      padding: 16px 16px 14px;
+      backdrop-filter: blur(14px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: -80px;
+      background:
+        radial-gradient(circle at 0 0, rgba(56,189,248,0.16), transparent 60%),
+        radial-gradient(circle at 100% 100%, rgba(34,197,94,0.16), transparent 65%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .panel-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+    }
+
+    .status-pill {
+      border-radius: 999px;
+      padding: 4px 9px 4px 6px;
+      background: rgba(15,23,42,0.95);
+      border: 1px solid rgba(52,211,153,0.7);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #bbf7d0;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 5px rgba(34,197,94,0.45);
+    }
+
+    .status-label {
+      font-weight: 500;
+    }
+
+    .status-sub {
+      font-size: 11px;
+      color: #4ade80;
+      opacity: 0.9;
+    }
+
+    .timeline {
+      margin-top: 10px;
+      border-radius: 14px;
+      padding: 10px 10px 9px;
+      background: rgba(15,23,42,0.9);
+      border: 1px dashed rgba(148,163,184,0.6);
+    }
+
+    .timeline-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .timeline-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .timeline-badge {
+      flex-shrink: 0;
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: rgba(15,23,42,0.9);
+      border: 1px solid rgba(148,163,184,0.65);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: rgba(248,250,252,0.9);
+      font-size: 11px;
+    }
+
+    .timeline-label strong {
+      color: var(--text-main);
+    }
+
+    .timeline-label span {
+      color: var(--text-muted);
+    }
+
+    .note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <div class="card">
+      <div class="card-inner">
+        <div>
+          <div class="pill">
+            <div class="pill-dot"></div>
+            Технические работы
+          </div>
+          <h1 class="title">
+            AI-консультации<br />
+            <span>временно на паузе</span>
+          </h1>
+          <p class="subtitle">
+            Я обновляю форму и сценарии консультаций, чтобы вы получали ещё более точные и практичные рекомендации от нейросетей — без потери времени и лишних вопросов.
+          </p>
+
+          <div class="bullet">
+            <div class="bullet-icon">⚙️</div>
+            <div>
+              Улучшаю механику формы, тексты и воронку под реальные запросы клиентов.
+              <br /><span>Так вы быстрее приходите к понятному результату после консультации.</span>
+            </div>
+          </div>
+
+          <div class="bullet">
+            <div class="bullet-icon">🤝</div>
+            <div>
+              На время обновления вы по‑прежнему можете получить консультацию лично.
+              <br /><span>Просто напишите в Telegram — ответ будет максимально оперативным.</span>
+            </div>
+          </div>
+
+          <p class="hint">
+            Если вы видите эту страницу, значит обновления уже в процессе. Обычно такие работы занимают ограниченное время.
+          </p>
+
+          <div class="cta-block">
+            <div class="cta-text">
+              <div class="cta-title">Нужна консультация прямо сейчас?</div>
+              Напишите мне в Telegram — кратко опишите запрос, и я помогу подобрать формат и время консультации вручную.
+            </div>
+            <a class="cta-button" href="https://t.me/Itsme5260" target="_blank" rel="noopener noreferrer">
+              <span>✉️</span> Написать в Telegram
+            </a>
+          </div>
+        </div>
+
+        <div class="side">
+          <div class="panel">
+            <div class="panel-inner">
+              <div class="panel-header">
+                <div class="panel-title">Статус формы</div>
+                <div class="status-pill">
+                  <div class="status-dot"></div>
+                  <div>
+                    <div class="status-label">Обновление</div>
+                    <div class="status-sub">Идут технические работы</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="timeline">
+                <div class="timeline-row">
+                  <div class="timeline-badge">1</div>
+                  <div class="timeline-label">
+                    <strong>Оптимизация вопросов</strong><br />
+                    <span>Чищу и переформулирую поля формы, чтобы не перегружать вас лишними деталями.</span>
+                  </div>
+                </div>
+                <div class="timeline-row">
+                  <div class="timeline-badge">2</div>
+                  <div class="timeline-label">
+                    <strong>Настройка сценариев</strong><br />
+                    <span>Обновляю логику обработки заявок и интеграцию с Mini App в Telegram.</span>
+                  </div>
+                </div>
+                <div class="timeline-row">
+                  <div class="timeline-badge">3</div>
+                  <div class="timeline-label">
+                    <strong>Финальное тестирование</strong><br />
+                    <span>Проверяю, чтобы всё работало стабильно и без багов на разных устройствах.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="note">
+                Как только обновление будет завершено, здесь снова появится интерактивная форма AI-консультации. А пока самый надёжный канал связи — сообщение в Telegram.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
