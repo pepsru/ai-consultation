@@ -903,6 +903,30 @@
                 return;
             }
             
+            // Проверка даты - не должна быть в прошлом
+            const selectedDateObj = new Date(formData.consultationDate + 'T00:00:00');
+            const todayDateObj = new Date(today + 'T00:00:00');
+            if (selectedDateObj < todayDateObj) {
+                errorMessage.textContent = '⚠ Нельзя записаться на прошедшую дату';
+                errorMessage.style.display = 'block';
+                return;
+            }
+            
+            // Проверка времени - если сегодня, то не меньше часа от текущего
+            if (formData.consultationDate === today) {
+                const now = new Date();
+                const [selectedHour, selectedMinute] = formData.consultationTime.split(':').map(Number);
+                const selectedTimeInMinutes = selectedHour * 60 + selectedMinute;
+                const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
+                const timeDiff = selectedTimeInMinutes - currentTimeInMinutes;
+                
+                if (timeDiff < 60) {
+                    errorMessage.textContent = '⚠ Необходимо минимум 1 час до начала консультации';
+                    errorMessage.style.display = 'block';
+                    return;
+                }
+            }
+            
             // Telegram username validation
             const telegramUsername = formData.telegram.substring(1);
             if (!formData.telegram.startsWith('@') || telegramUsername.length < 5) {
