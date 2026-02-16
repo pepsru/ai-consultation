@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Консультация | Нейрографика</title>
-    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         * {
@@ -447,6 +446,9 @@
                 ⚠ Произошла ошибка. Проверьте правильность заполнения всех полей.
             </div>
 
+            <!-- DEBUG INFO (видимо для отладки Telegram) -->
+            <div id="debugInfo" style="display: none; padding: 15px; background: rgba(59, 130, 246, 0.2); border-radius: 12px; margin-bottom: 20px; font-size: 14px; color: #60a5fa;"></div>
+
             <form id="consultationForm">
                 <div class="form-group">
                     <label for="fullName">◆ ФИО</label>
@@ -536,32 +538,47 @@
 
     <script>
         // ============================================
-        // TELEGRAM WEB APP INTEGRATION
+        // TELEGRAM INTEGRATION
         // ============================================
-        
-        // Инициализация Telegram WebApp
         let tg = window.Telegram?.WebApp;
         let isTelegramApp = false;
+        const debugInfo = document.getElementById('debugInfo');
         
         if (tg && tg.initData) {
-            // Проверяем что это реально Telegram, а не просто браузер
             isTelegramApp = true;
-            
             try {
-                tg.ready(); // Сообщаем что приложение готово
-                tg.expand(); // Разворачиваем на весь экран
-            } catch (e) {
-                console.log('Telegram API ограничение:', e.message);
-            }
+                tg.ready();
+                tg.expand();
+            } catch (e) {}
             
-            console.log('✅ Форма открыта в Telegram Mini App');
-            console.log('Пользователь:', tg.initDataUnsafe?.user);
+            const user = tg.initDataUnsafe?.user;
+            
+            // ПОКАЗЫВАЕМ DEBUG INFO
+            debugInfo.style.display = 'block';
+            debugInfo.innerHTML = `
+                📱 <b>Telegram Mini App:</b> ДА<br>
+                👤 <b>User ID:</b> ${user?.id || 'нет'}<br>
+                🔤 <b>Username:</b> ${user?.username ? '@' + user.username : 'НЕТ USERNAME'}<br>
+                📝 <b>Имя:</b> ${user?.first_name || 'нет'} ${user?.last_name || ''}
+            `;
+            
+            // Автозаполнение
+            setTimeout(() => {
+                if (user?.username) {
+                    telegramInput.value = '@' + user.username;
+                }
+                if (user?.first_name) {
+                    const fullName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+                    const nameInput = document.getElementById('fullName');
+                    if (!nameInput.value) {
+                        nameInput.value = fullName;
+                    }
+                }
+            }, 300);
         } else {
-            console.log('🌐 Форма открыта в браузере');
+            debugInfo.style.display = 'block';
+            debugInfo.innerHTML = '🌐 <b>Браузер:</b> форма открыта в обычном браузере';
         }
-
-        // Neural network background - DISABLED for performance
-        // function createNeuralNetwork() - removed for better performance
 
         // Form elements
         const form = document.getElementById('consultationForm');
@@ -574,37 +591,6 @@
         const dateInput = document.getElementById('consultationDate');
         const timeSlots = document.querySelectorAll('.time-slot');
         const selectedTimeInput = document.getElementById('selectedTime');
-        
-        // ============================================
-        // АВТОЗАПОЛНЕНИЕ ИЗ TELEGRAM
-        // ============================================
-        
-        // Небольшая задержка для надёжности
-        setTimeout(() => {
-            if (isTelegramApp && tg.initDataUnsafe?.user) {
-                const user = tg.initDataUnsafe.user;
-                
-                console.log('Автозаполнение для:', user);
-                
-                // Автозаполнение Telegram username
-                if (user.username) {
-                    telegramInput.value = '@' + user.username;
-                    console.log('✅ Username подставлен:', '@' + user.username);
-                } else {
-                    console.log('⚠️ У пользователя нет username в Telegram');
-                }
-                
-                // Опционально: автозаполнение имени
-                if (user.first_name) {
-                    const fullName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
-                    const nameInput = document.getElementById('fullName');
-                    if (!nameInput.value) { // Не перезаписываем если уже заполнено
-                        nameInput.value = fullName;
-                        console.log('✅ Имя подставлено:', fullName);
-                    }
-                }
-            }
-        }, 300);
 
         // Set minimum date to today
         const today = new Date().toISOString().split('T')[0];
@@ -643,33 +629,23 @@
         telegramInput.addEventListener('input', function(e) {
             let value = e.target.value;
             
-            // Автоматически добавляем @ если его нет
             if (value && !value.startsWith('@')) {
                 value = '@' + value;
             }
             
-            // Убираем @ и проверяем символы
             let username = value.substring(1);
-            
-            // Telegram username правила:
-            // - Только латинские буквы, цифры и подчёркивания
-            // - Минимум 5 символов
-            // - Не может начинаться с цифры
             username = username.replace(/[^a-zA-Z0-9_]/g, '');
             
-            // Если первый символ - цифра, убираем её
             if (username.length > 0 && /^\d/.test(username)) {
                 username = username.substring(1);
             }
             
-            // Обновляем значение
             e.target.value = username ? '@' + username : '';
             
-            // Визуальная индикация валидности
             if (username.length >= 5) {
                 e.target.style.borderColor = 'var(--primary-color)';
             } else if (username.length > 0) {
-                e.target.style.borderColor = '#fbbf24'; // Жёлтый - предупреждение
+                e.target.style.borderColor = '#fbbf24';
             } else {
                 e.target.style.borderColor = 'rgba(0, 245, 255, 0.2)';
             }
@@ -678,30 +654,27 @@
         // Time slot selection
         timeSlots.forEach(slot => {
             slot.addEventListener('click', function() {
-                // Проверяем, не заблокирован ли слот
                 if (this.classList.contains('disabled')) {
-                    return; // Не даём выбрать занятый слот
+                    return;
                 }
-                
                 timeSlots.forEach(s => s.classList.remove('selected'));
                 this.classList.add('selected');
                 selectedTimeInput.value = this.getAttribute('data-time');
             });
         });
 
-        // ПРОВЕРКА ДОСТУПНОСТИ при выборе даты
+        // ============================================
+        // ПРОВЕРКА ДОСТУПНОСТИ СЛОТОВ
+        // ============================================
         dateInput.addEventListener('change', async function() {
             const selectedDate = this.value;
-            
             if (!selectedDate) return;
             
-            // Показываем загрузку
             const timeSlotsContainer = document.getElementById('timeSlotsContainer');
             timeSlotsContainer.style.opacity = '0.5';
             timeSlotsContainer.style.pointerEvents = 'none';
             
             try {
-                // Запрашиваем доступные слоты
                 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyF9bbu2p7XHkbsbeHWouJq5N07PQztBKSSdfkBSWsCGKfmVe_YRoqDiR3dv4OFSNGN/exec';
                 const response = await fetch(
                     `${GOOGLE_SCRIPT_URL}?action=checkAvailability&date=${selectedDate}`
@@ -710,38 +683,70 @@
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    // Обновляем доступность слотов
+                    // Получаем текущее время в Asia/Yekaterinburg (UTC+5)
+                    const now = new Date();
+                    const yekaterinburgTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
+                    const currentHour = yekaterinburgTime.getUTCHours();
+                    const currentMinute = yekaterinburgTime.getUTCMinutes();
+                    const isToday = selectedDate === today;
+                    
                     timeSlots.forEach(slot => {
                         const time = slot.getAttribute('data-time');
+                        const [slotHour, slotMinute] = time.split(':').map(Number);
                         
-                        if (data.availableSlots.includes(time)) {
-                            // Слот свободен
-                            slot.classList.remove('disabled');
-                            slot.style.opacity = '1';
-                            slot.style.cursor = 'pointer';
-                            slot.style.pointerEvents = 'auto';
-                        } else {
-                            // Слот занят
+                        let isDisabled = false;
+                        let reason = '';
+                        
+                        // Проверка 1: Занято в календаре
+                        if (!data.availableSlots.includes(time)) {
+                            isDisabled = true;
+                            reason = 'Занято';
+                        }
+                        
+                        // Проверка 2: Время в прошлом (только для сегодняшнего дня)
+                        if (isToday && !isDisabled) {
+                            const slotTimeInMinutes = slotHour * 60 + slotMinute;
+                            const currentTimeInMinutes = currentHour * 60 + currentMinute;
+                            const timeDiff = slotTimeInMinutes - currentTimeInMinutes;
+                            
+                            // Меньше 60 минут до слота или уже прошло
+                            if (timeDiff < 60) {
+                                isDisabled = true;
+                                reason = timeDiff < 0 ? 'Прошло' : 'Менее 1ч';
+                            }
+                        }
+                        
+                        // Применяем стиль
+                        if (isDisabled) {
                             slot.classList.add('disabled');
                             slot.classList.remove('selected');
                             slot.style.opacity = '0.3';
                             slot.style.cursor = 'not-allowed';
                             slot.style.pointerEvents = 'none';
+                            slot.title = reason;
                             
-                            // Если этот слот был выбран - сбрасываем выбор
                             if (selectedTimeInput.value === time) {
                                 selectedTimeInput.value = '';
                             }
+                        } else {
+                            slot.classList.remove('disabled');
+                            slot.style.opacity = '1';
+                            slot.style.cursor = 'pointer';
+                            slot.style.pointerEvents = 'auto';
+                            slot.title = 'Свободно';
                         }
                     });
                     
-                    console.log('✅ Доступные слоты:', data.availableSlots);
-                    console.log('❌ Занятые слоты:', data.bookedSlots);
+                    console.log('✅ Проверка завершена:', {
+                        availableSlots: data.availableSlots,
+                        bookedSlots: data.bookedSlots,
+                        currentTime: `${currentHour}:${currentMinute}`,
+                        isToday: isToday
+                    });
                 }
                 
             } catch (error) {
-                console.error('Ошибка проверки доступности:', error);
-                // В случае ошибки - делаем все слоты доступными
+                console.error('Ошибка проверки:', error);
                 timeSlots.forEach(slot => {
                     slot.classList.remove('disabled');
                     slot.style.opacity = '1';
@@ -749,7 +754,6 @@
                     slot.style.pointerEvents = 'auto';
                 });
             } finally {
-                // Убираем индикатор загрузки
                 timeSlotsContainer.style.opacity = '1';
                 timeSlotsContainer.style.pointerEvents = 'auto';
             }
@@ -790,8 +794,8 @@
                 return;
             }
             
-            // Валидация Telegram username
-            const telegramUsername = formData.telegram.substring(1); // Убираем @
+            // Telegram username validation
+            const telegramUsername = formData.telegram.substring(1);
             if (!formData.telegram.startsWith('@') || telegramUsername.length < 5) {
                 errorMessage.textContent = '⚠ Telegram ник должен начинаться с @ и содержать минимум 5 символов';
                 errorMessage.style.display = 'block';
@@ -826,11 +830,6 @@
                 
                 // Scroll to success message
                 successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                
-                // Если в Telegram - показываем сообщение
-                if (isTelegramApp && tg) {
-                    console.log('✅ Заявка отправлена через Telegram Mini App');
-                }
                 
             } catch (error) {
                 console.error('Error:', error);
