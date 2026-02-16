@@ -22,10 +22,10 @@
     
     if (MAINTENANCE_MODE) {
       // Техработы - показываем заглушку
-      window.location.replace('maintenance.html');
+      window.location.replace('maintenance.html?t=' + Date.now());
     } else {
       // Всё работает - показываем форму
-      window.location.replace('form.html');
+      window.location.replace('form.html?t=' + Date.now());
     }
   </script>
   
@@ -34,4 +34,3 @@
   </noscript>
 </body>
 </html>
-
