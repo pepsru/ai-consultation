@@ -775,13 +775,21 @@
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    // data.availableSlots - это слоты в ВАШЕМ времени (UTC+5)
-                    // Нужно конвертировать в время клиента
-                    
                     const now = new Date();
                     const currentHourClient = now.getHours();
                     const currentMinuteClient = now.getMinutes();
+                    
+                    // Проверяем не выбрана ли прошлая дата
+                    const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+                    const todayDateObj = new Date(today + 'T00:00:00');
+                    const isPastDate = selectedDateObj < todayDateObj;
                     const isToday = selectedDate === today;
+                    
+                    // Если выбрана прошлая дата - показываем сообщение
+                    if (isPastDate) {
+                        timeSlotsContainer.innerHTML = '<p style="color: #ef4444; font-size: 14px; padding: 15px;">⚠️ Нельзя выбрать прошедшую дату</p>';
+                        return;
+                    }
                     
                     // Очищаем старые слоты
                     timeSlotsContainer.innerHTML = '';
@@ -798,7 +806,7 @@
                         let isDisabled = false;
                         let reason = '';
                         
-                        // Проверка: Время в прошлом или меньше часа
+                        // Проверка: Время в прошлом или меньше часа (ТОЛЬКО для сегодня)
                         if (isToday) {
                             const clientSlotHour = Math.floor(clientHour);
                             const clientSlotMinute = Math.round((clientHour - clientSlotHour) * 60);
@@ -881,7 +889,7 @@
                 consultationDate: document.getElementById('consultationDate').value,
                 consultationTime: selectedTimeInput.value, // ВАШЕ время (UTC+5)
                 clientTime: selectedTimeInput.getAttribute('data-client-time') || selectedTimeInput.value, // Время клиента
-                clientTimezone: clientTimezoneName,
+                clientTimezone: `${clientTimezoneName} (UTC${clientTimezoneOffset >= 0 ? '+' : ''}${clientTimezoneOffset / 60})`,
                 clientTimezoneOffset: clientTimezoneOffset,
                 comments: document.getElementById('comments').value.trim(),
                 timestamp: new Date().toISOString()
