@@ -926,8 +926,14 @@
                 // Show success
                 successMessage.style.display = 'block';
                 form.reset();
-                timeSlots.forEach(s => s.classList.remove('selected'));
+                
+                // Очищаем динамические слоты
+                document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
                 selectedTimeInput.value = '';
+                
+                // Сбрасываем контейнер слотов
+                const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+                timeSlotsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">Сначала выберите дату консультации ☝️</p>';
                 
                 // Scroll to success message
                 successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -953,7 +959,9 @@
                 telegram: data.telegram,
                 consultationType: data.consultationType,
                 consultationDate: data.consultationDate,
-                consultationTime: data.consultationTime,
+                consultationTime: data.consultationTime, // ВАШЕ время
+                clientTime: data.clientTime, // Время клиента
+                clientTimezone: data.clientTimezone, // Часовой пояс
                 comments: data.comments,
                 timestamp: data.timestamp
             };
