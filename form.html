@@ -438,6 +438,18 @@
                 </ul>
             </div>
 
+            <!-- Информация о часовых поясах -->
+            <div class="benefits" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(96, 165, 250, 0.05) 100%);">
+                <h3>⏰ Время консультаций</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                    <strong style="color: var(--primary-color);">Рабочее время:</strong> 10:00 - 20:00 (Екатеринбург, UTC+5)
+                </p>
+                <p style="color: var(--text-secondary); font-size: 14px;" id="timezoneInfo">
+                    📍 Ваш часовой пояс: <span id="clientTimezone" style="color: var(--primary-color);">определяется...</span><br>
+                    🕐 Слоты показаны в вашем времени
+                </p>
+            </div>
+
             <div class="success-message message" id="successMessage">
                 ✓ Заявка успешно отправлена!
             </div>
@@ -522,15 +534,13 @@
                 <div class="form-group">
                     <label>◆ Желаемое время</label>
                     <div class="time-slots-container" id="timeSlotsContainer">
-                        <div class="time-slot" data-time="10:00">10:00</div>
-                        <div class="time-slot" data-time="12:00">12:00</div>
-                        <div class="time-slot" data-time="14:00">14:00</div>
-                        <div class="time-slot" data-time="16:00">16:00</div>
-                        <div class="time-slot" data-time="18:00">18:00</div>
-                        <div class="time-slot" data-time="20:00">20:00</div>
+                        <!-- Слоты загружаются автоматически после выбора даты -->
+                        <p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">
+                            Сначала выберите дату консультации ☝️
+                        </p>
                     </div>
                     <input type="hidden" id="selectedTime" name="selectedTime" required>
-                    <p class="info-text">Кликните на удобное время</p>
+                    <p class="info-text">Слоты показаны в вашем часовом поясе</p>
                 </div>
 
                 <div class="form-group">
@@ -616,6 +626,58 @@
         }
         */
 
+        // ============================================
+        // ОПРЕДЕЛЕНИЕ ЧАСОВОГО ПОЯСА КЛИЕНТА
+        // ============================================
+        
+        const MY_TIMEZONE_OFFSET = 300; // UTC+5 в минутах (5 * 60 = 300)
+        const WORK_START_HOUR = 10; // Начало рабочего дня (в вашем времени)
+        const WORK_END_HOUR = 20;   // Конец рабочего дня
+        
+        // Получаем часовой пояс клиента
+        const clientTimezoneOffset = -new Date().getTimezoneOffset(); // В минутах
+        const clientTimezoneName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // Разница в часах между клиентом и вами
+        const timeDifferenceMinutes = clientTimezoneOffset - MY_TIMEZONE_OFFSET;
+        const timeDifferenceHours = timeDifferenceMinutes / 60;
+        
+        // Показываем информацию о часовом поясе
+        const clientTimezoneEl = document.getElementById('clientTimezone');
+        if (clientTimezoneEl) {
+            const utcOffset = clientTimezoneOffset / 60;
+            const sign = utcOffset >= 0 ? '+' : '';
+            clientTimezoneEl.textContent = `${clientTimezoneName} (UTC${sign}${utcOffset})`;
+        }
+        
+        console.log('🌍 Часовые пояса:', {
+            client: clientTimezoneName,
+            clientOffset: clientTimezoneOffset,
+            myOffset: MY_TIMEZONE_OFFSET,
+            difference: timeDifferenceHours + ' часов'
+        });
+        
+        // ============================================
+        // ФУНКЦИЯ КОНВЕРСИИ ВРЕМЕНИ
+        // ============================================
+        
+        // Конвертирует ваше время в время клиента
+        function convertMyTimeToClient(myHour) {
+            return myHour + timeDifferenceHours;
+        }
+        
+        // Конвертирует время клиента в ваше время
+        function convertClientTimeToMy(clientHour) {
+            return clientHour - timeDifferenceHours;
+        }
+        
+        // Форматирует время для отображения
+        function formatTime(hour) {
+            const h = Math.floor(hour);
+            const m = Math.round((hour - h) * 60);
+            return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+        }
+
         // Form elements
         const form = document.getElementById('consultationForm');
         const submitBtn = document.getElementById('submitBtn');
@@ -625,7 +687,7 @@
         const phoneInput = document.getElementById('phone');
         const telegramInput = document.getElementById('telegram');
         const dateInput = document.getElementById('consultationDate');
-        const timeSlots = document.querySelectorAll('.time-slot');
+        // const timeSlots = document.querySelectorAll('.time-slot'); // Не нужно - слоты динамические
         const selectedTimeInput = document.getElementById('selectedTime');
 
         // Set minimum date to today
@@ -687,20 +749,14 @@
             }
         });
 
-        // Time slot selection
-        timeSlots.forEach(slot => {
-            slot.addEventListener('click', function() {
-                if (this.classList.contains('disabled')) {
-                    return;
-                }
-                timeSlots.forEach(s => s.classList.remove('selected'));
-                this.classList.add('selected');
-                selectedTimeInput.value = this.getAttribute('data-time');
-            });
-        });
+        // ============================================
+        // TIME SLOT HANDLERS
+        // ============================================
+        // Обработчики кликов теперь добавляются динамически
+        // при генерации слотов в функции проверки доступности
 
         // ============================================
-        // ПРОВЕРКА ДОСТУПНОСТИ СЛОТОВ
+        // ПРОВЕРКА ДОСТУПНОСТИ СЛОТОВ С КОНВЕРСИЕЙ
         // ============================================
         dateInput.addEventListener('change', async function() {
             const selectedDate = this.value;
@@ -713,82 +769,88 @@
             try {
                 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyF9bbu2p7XHkbsbeHWouJq5N07PQztBKSSdfkBSWsCGKfmVe_YRoqDiR3dv4OFSNGN/exec';
                 const response = await fetch(
-                    `${GOOGLE_SCRIPT_URL}?action=checkAvailability&date=${selectedDate}`
+                    `${GOOGLE_SCRIPT_URL}?action=checkAvailability&date=${selectedDate}&clientOffset=${clientTimezoneOffset}`
                 );
                 
                 const data = await response.json();
                 
                 if (data.status === 'success') {
-                    // Получаем текущее время в Asia/Yekaterinburg (UTC+5)
+                    // data.availableSlots - это слоты в ВАШЕМ времени (UTC+5)
+                    // Нужно конвертировать в время клиента
+                    
                     const now = new Date();
-                    const yekaterinburgTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
-                    const currentHour = yekaterinburgTime.getUTCHours();
-                    const currentMinute = yekaterinburgTime.getUTCMinutes();
+                    const currentHourClient = now.getHours();
+                    const currentMinuteClient = now.getMinutes();
                     const isToday = selectedDate === today;
                     
-                    timeSlots.forEach(slot => {
-                        const time = slot.getAttribute('data-time');
-                        const [slotHour, slotMinute] = time.split(':').map(Number);
+                    // Очищаем старые слоты
+                    timeSlotsContainer.innerHTML = '';
+                    
+                    // Генерируем слоты для клиента
+                    data.availableSlots.forEach(myTimeSlot => {
+                        const [myHour, myMinute] = myTimeSlot.split(':').map(Number);
                         
+                        // Конвертируем в время клиента
+                        const clientHour = myHour + timeDifferenceHours;
+                        const clientTime = formatTime(clientHour);
+                        
+                        // Проверки доступности
                         let isDisabled = false;
                         let reason = '';
                         
-                        // Проверка 1: Занято в календаре
-                        if (!data.availableSlots.includes(time)) {
-                            isDisabled = true;
-                            reason = 'Занято';
-                        }
-                        
-                        // Проверка 2: Время в прошлом (только для сегодняшнего дня)
-                        if (isToday && !isDisabled) {
-                            const slotTimeInMinutes = slotHour * 60 + slotMinute;
-                            const currentTimeInMinutes = currentHour * 60 + currentMinute;
+                        // Проверка: Время в прошлом или меньше часа
+                        if (isToday) {
+                            const clientSlotHour = Math.floor(clientHour);
+                            const clientSlotMinute = Math.round((clientHour - clientSlotHour) * 60);
+                            const slotTimeInMinutes = clientSlotHour * 60 + clientSlotMinute;
+                            const currentTimeInMinutes = currentHourClient * 60 + currentMinuteClient;
                             const timeDiff = slotTimeInMinutes - currentTimeInMinutes;
                             
-                            // Меньше 60 минут до слота или уже прошло
                             if (timeDiff < 60) {
                                 isDisabled = true;
                                 reason = timeDiff < 0 ? 'Прошло' : 'Менее 1ч';
                             }
                         }
                         
-                        // Применяем стиль
+                        // Создаём элемент слота
+                        const slotEl = document.createElement('div');
+                        slotEl.className = 'time-slot';
+                        slotEl.setAttribute('data-time', myTimeSlot); // Сохраняем ВАШЕ время
+                        slotEl.setAttribute('data-client-time', clientTime); // Показываем время клиента
+                        slotEl.textContent = clientTime; // Показываем время клиента
+                        
                         if (isDisabled) {
-                            slot.classList.add('disabled');
-                            slot.classList.remove('selected');
-                            slot.style.opacity = '0.3';
-                            slot.style.cursor = 'not-allowed';
-                            slot.style.pointerEvents = 'none';
-                            slot.title = reason;
-                            
-                            if (selectedTimeInput.value === time) {
-                                selectedTimeInput.value = '';
-                            }
+                            slotEl.classList.add('disabled');
+                            slotEl.style.opacity = '0.3';
+                            slotEl.style.cursor = 'not-allowed';
+                            slotEl.style.pointerEvents = 'none';
+                            slotEl.title = reason;
                         } else {
-                            slot.classList.remove('disabled');
-                            slot.style.opacity = '1';
-                            slot.style.cursor = 'pointer';
-                            slot.style.pointerEvents = 'auto';
-                            slot.title = 'Свободно';
+                            slotEl.title = `Ваше время: ${clientTime}\nВремя консультанта: ${myTimeSlot} (UTC+5)`;
+                            slotEl.addEventListener('click', function() {
+                                if (this.classList.contains('disabled')) return;
+                                
+                                document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                                this.classList.add('selected');
+                                selectedTimeInput.value = this.getAttribute('data-time'); // ВАШЕ время
+                                
+                                // Сохраняем время клиента для отображения
+                                selectedTimeInput.setAttribute('data-client-time', this.getAttribute('data-client-time'));
+                            });
                         }
+                        
+                        timeSlotsContainer.appendChild(slotEl);
                     });
                     
-                    console.log('✅ Проверка завершена:', {
-                        availableSlots: data.availableSlots,
-                        bookedSlots: data.bookedSlots,
-                        currentTime: `${currentHour}:${currentMinute}`,
-                        isToday: isToday
+                    console.log('✅ Слоты обновлены:', {
+                        availableInMyTime: data.availableSlots,
+                        timeDifference: timeDifferenceHours + 'ч'
                     });
                 }
                 
             } catch (error) {
                 console.error('Ошибка проверки:', error);
-                timeSlots.forEach(slot => {
-                    slot.classList.remove('disabled');
-                    slot.style.opacity = '1';
-                    slot.style.cursor = 'pointer';
-                    slot.style.pointerEvents = 'auto';
-                });
+                alert('⚠️ Ошибка загрузки доступных слотов. Попробуйте обновить страницу.');
             } finally {
                 timeSlotsContainer.style.opacity = '1';
                 timeSlotsContainer.style.pointerEvents = 'auto';
@@ -817,7 +879,10 @@
                 telegram: document.getElementById('telegram').value.trim(),
                 consultationType: document.getElementById('consultationType').value,
                 consultationDate: document.getElementById('consultationDate').value,
-                consultationTime: selectedTimeInput.value,
+                consultationTime: selectedTimeInput.value, // ВАШЕ время (UTC+5)
+                clientTime: selectedTimeInput.getAttribute('data-client-time') || selectedTimeInput.value, // Время клиента
+                clientTimezone: clientTimezoneName,
+                clientTimezoneOffset: clientTimezoneOffset,
                 comments: document.getElementById('comments').value.trim(),
                 timestamp: new Date().toISOString()
             };
@@ -971,7 +1036,9 @@ Telegram: ${data.telegram}
 
 📋 <b>Тип:</b> ${data.consultationType}
 📅 <b>Дата:</b> ${data.consultationDate}
-⏰ <b>Время:</b> ${data.consultationTime}
+
+⏰ <b>ВАШЕ ВРЕМЯ:</b> ${data.consultationTime} (Екатеринбург, UTC+5)
+🕐 <b>Время клиента:</b> ${data.clientTime} (${data.clientTimezone})
 
 💭 <b>Комментарий:</b>
 ${data.comments || 'Не указан'}
