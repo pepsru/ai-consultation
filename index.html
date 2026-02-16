@@ -1,21 +1,36 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <title>Перенаправление...</title>
-  <!-- РЕЖИМ: ФОРМА -->
-  <!-- Для формы → content="0; URL=form.html" -->
-  <!-- Для тех.работ → content="0; URL=maintenance.html" -->
-  <meta http-equiv="refresh" content="0; URL=form.html" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Консультация</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <p>Если перенаправление не произошло автоматически,
-    <a href="form.html">перейдите по ссылке</a>.
-  </p>
+  <script>
+    // ============================================
+    // РЕЖИМ ТЕХНИЧЕСКИХ РАБОТ
+    // ============================================
+    // true  = показывать заглушку (maintenance.html)
+    // false = показывать форму (form.html)
+    
+    const MAINTENANCE_MODE = false;
+    
+    // ============================================
+    // АВТОМАТИЧЕСКОЕ ПЕРЕНАПРАВЛЕНИЕ
+    // ============================================
+    
+    if (MAINTENANCE_MODE) {
+      // Техработы - показываем заглушку
+      window.location.replace('maintenance.html');
+    } else {
+      // Всё работает - показываем форму
+      window.location.replace('form.html');
+    }
+  </script>
+  
+  <noscript>
+    <p>Если перенаправление не произошло, <a href="form.html">нажмите сюда</a>.</p>
+  </noscript>
 </body>
 </html>
-
-
-
-
-
