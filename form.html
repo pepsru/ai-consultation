@@ -836,18 +836,16 @@
                         let isDisabled = false;
                         let reason = '';
                         
-                        // Проверка 1: Время в прошлом или меньше часа (ТОЛЬКО для сегодня, ПРИОРИТЕТНАЯ)
-                        if (isToday) {
-                            const clientSlotHour = Math.floor(clientHour);
-                            const clientSlotMinute = Math.round((clientHour - clientSlotHour) * 60);
-                            const slotTimeInMinutes = clientSlotHour * 60 + clientSlotMinute;
-                            const currentTimeInMinutes = currentHourClient * 60 + currentMinuteClient;
-                            const timeDiff = slotTimeInMinutes - currentTimeInMinutes;
-                            
-                            if (timeDiff < 60) {
-                                isDisabled = true;
-                                reason = timeDiff < 0 ? 'Прошло' : 'Менее 1ч';
-                            }
+                        // Проверка 1: Абсолютное время - меньше часа от текущего момента (ПРИОРИТЕТНАЯ)
+                        // Создаём абсолютное время слота
+                        const slotDateTime = new Date(selectedDate + 'T' + formatTime(clientHour) + ':00');
+                        const nowDateTime = new Date();
+                        const timeDiffMs = slotDateTime - nowDateTime;
+                        const timeDiffMinutes = timeDiffMs / (1000 * 60);
+                        
+                        if (timeDiffMinutes < 60) {
+                            isDisabled = true;
+                            reason = timeDiffMinutes < 0 ? 'Прошло' : 'Менее 1ч';
                         }
                         
                         // Проверка 2: Занято в календаре (только если еще не заблокировано по времени)
