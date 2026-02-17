@@ -541,6 +541,24 @@
                     </div>
                     <input type="hidden" id="selectedTime" name="selectedTime" required>
                     <p class="info-text">Слоты показаны в вашем часовом поясе</p>
+                    
+                    <!-- Кнопка поиска свободного времени (показывается только если всё занято) -->
+                    <div id="findFreeSlotContainer" style="display: none; margin-top: 15px;">
+                        <button type="button" id="findFreeSlotBtn" style="
+                            width: 100%;
+                            padding: 12px;
+                            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 12px;
+                            font-size: 15px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        ">
+                            🔍 Найти ближайшее свободное время
+                        </button>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -766,8 +784,13 @@
             if (!selectedDate) return;
             
             const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+            const findFreeSlotContainer = document.getElementById('findFreeSlotContainer');
+            
+            // Показываем индикатор загрузки
+            timeSlotsContainer.innerHTML = '<p style="color: var(--primary-color); font-size: 14px; padding: 15px;">⏳ Загрузка доступных слотов...</p>';
             timeSlotsContainer.style.opacity = '0.5';
             timeSlotsContainer.style.pointerEvents = 'none';
+            findFreeSlotContainer.style.display = 'none';
             
             try {
                 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyF9bbu2p7XHkbsbeHWouJq5N07PQztBKSSdfkBSWsCGKfmVe_YRoqDiR3dv4OFSNGN/exec';
@@ -797,19 +820,23 @@
                     // Очищаем старые слоты
                     timeSlotsContainer.innerHTML = '';
                     
-                    // Генерируем слоты для клиента
-                    data.availableSlots.forEach(myTimeSlot => {
+                    let freeCount = 0;
+                    
+                    // Генерируем ВСЕ слоты (свободные + занятые)
+                    data.allSlots.forEach(myTimeSlot => {
                         const [myHour, myMinute] = myTimeSlot.split(':').map(Number);
                         
                         // Конвертируем в время клиента
                         const clientHour = myHour + timeDifferenceHours;
                         const clientTime = formatTime(clientHour);
                         
-                        // Проверки доступности
                         let isDisabled = false;
                         let reason = '';
                         
-                        // Проверка: Время в прошлом или меньше часа (ТОЛЬКО для сегодня)
+                        // Проверка 1: Занято в календаре
+                        const isBooked = data.bookedSlots.includes(myTimeSlot);
+                        
+                        // Проверка 2: Время в прошлом или меньше часа (ТОЛЬКО для сегодня)
                         if (isToday) {
                             const clientSlotHour = Math.floor(clientHour);
                             const clientSlotMinute = Math.round((clientHour - clientSlotHour) * 60);
@@ -823,12 +850,18 @@
                             }
                         }
                         
+                        // Если занято в календаре
+                        if (isBooked && !isDisabled) {
+                            isDisabled = true;
+                            reason = 'Занято';
+                        }
+                        
                         // Создаём элемент слота
                         const slotEl = document.createElement('div');
                         slotEl.className = 'time-slot';
-                        slotEl.setAttribute('data-time', myTimeSlot); // Сохраняем ВАШЕ время
-                        slotEl.setAttribute('data-client-time', clientTime); // Показываем время клиента
-                        slotEl.textContent = clientTime; // Показываем время клиента
+                        slotEl.setAttribute('data-time', myTimeSlot);
+                        slotEl.setAttribute('data-client-time', clientTime);
+                        slotEl.textContent = clientTime;
                         
                         if (isDisabled) {
                             slotEl.classList.add('disabled');
@@ -836,16 +869,24 @@
                             slotEl.style.cursor = 'not-allowed';
                             slotEl.style.pointerEvents = 'none';
                             slotEl.title = reason;
+                            
+                            // Добавляем текст причины
+                            const reasonEl = document.createElement('span');
+                            reasonEl.style.display = 'block';
+                            reasonEl.style.fontSize = '11px';
+                            reasonEl.style.marginTop = '2px';
+                            reasonEl.style.color = '#ef4444';
+                            reasonEl.textContent = reason;
+                            slotEl.appendChild(reasonEl);
                         } else {
+                            freeCount++;
                             slotEl.title = `Ваше время: ${clientTime}\nВремя консультанта: ${myTimeSlot} (UTC+5)`;
                             slotEl.addEventListener('click', function() {
                                 if (this.classList.contains('disabled')) return;
                                 
                                 document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
                                 this.classList.add('selected');
-                                selectedTimeInput.value = this.getAttribute('data-time'); // ВАШЕ время
-                                
-                                // Сохраняем время клиента для отображения
+                                selectedTimeInput.value = this.getAttribute('data-time');
                                 selectedTimeInput.setAttribute('data-client-time', this.getAttribute('data-client-time'));
                             });
                         }
@@ -853,18 +894,87 @@
                         timeSlotsContainer.appendChild(slotEl);
                     });
                     
+                    // Если все слоты заняты - показываем кнопку поиска
+                    if (freeCount === 0) {
+                        findFreeSlotContainer.style.display = 'block';
+                    }
+                    
                     console.log('✅ Слоты обновлены:', {
-                        availableInMyTime: data.availableSlots,
-                        timeDifference: timeDifferenceHours + 'ч'
+                        total: data.allSlots.length,
+                        free: freeCount,
+                        booked: data.bookedSlots.length
                     });
                 }
                 
             } catch (error) {
                 console.error('Ошибка проверки:', error);
-                alert('⚠️ Ошибка загрузки доступных слотов. Попробуйте обновить страницу.');
+                timeSlotsContainer.innerHTML = '<p style="color: #ef4444; font-size: 14px; padding: 15px;">⚠️ Ошибка загрузки. Попробуйте обновить страницу.</p>';
             } finally {
                 timeSlotsContainer.style.opacity = '1';
                 timeSlotsContainer.style.pointerEvents = 'auto';
+            }
+        });
+
+        // ============================================
+        // ПОИСК БЛИЖАЙШЕГО СВОБОДНОГО ВРЕМЕНИ
+        // ============================================
+        document.getElementById('findFreeSlotBtn').addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '🔍 Поиск свободного времени...';
+            
+            try {
+                const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyF9bbu2p7XHkbsbeHWouJq5N07PQztBKSSdfkBSWsCGKfmVe_YRoqDiR3dv4OFSNGN/exec';
+                
+                // Ищем ближайшую свободную дату (проверяем следующие 5 дней)
+                const startDate = new Date(dateInput.value);
+                let foundDate = null;
+                let foundSlots = null;
+                
+                for (let i = 1; i <= 5; i++) {
+                    const checkDate = new Date(startDate);
+                    checkDate.setDate(checkDate.getDate() + i);
+                    const dateStr = checkDate.getFullYear() + '-' + 
+                                   String(checkDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                   String(checkDate.getDate()).padStart(2, '0');
+                    
+                    const response = await fetch(
+                        `${GOOGLE_SCRIPT_URL}?action=checkAvailability&date=${dateStr}&clientOffset=${clientTimezoneOffset}`
+                    );
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success' && data.availableSlots.length > 0) {
+                        foundDate = dateStr;
+                        foundSlots = data;
+                        break;
+                    }
+                }
+                
+                if (foundDate) {
+                    // Подставляем найденную дату
+                    dateInput.value = foundDate;
+                    
+                    // Триггерим событие change для загрузки слотов
+                    const event = new Event('change', { bubbles: true });
+                    dateInput.dispatchEvent(event);
+                    
+                    // Прокручиваем к слотам
+                    document.getElementById('timeSlotsContainer').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                } else {
+                    alert('😔 К сожалению, все слоты заняты на ближайшие 5 дней. Попробуйте выбрать дату позже или свяжитесь напрямую.');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка поиска:', error);
+                alert('⚠️ Ошибка поиска свободного времени. Попробуйте выбрать дату вручную.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
             }
         });
 
