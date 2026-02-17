@@ -830,13 +830,13 @@
                         const clientHour = myHour + timeDifferenceHours;
                         const clientTime = formatTime(clientHour);
                         
+                        // Проверяем занятость в календаре
+                        const isBooked = data.bookedSlots.includes(myTimeSlot);
+                        
                         let isDisabled = false;
                         let reason = '';
                         
-                        // Проверка 1: Занято в календаре
-                        const isBooked = data.bookedSlots.includes(myTimeSlot);
-                        
-                        // Проверка 2: Время в прошлом или меньше часа (ТОЛЬКО для сегодня)
+                        // Проверка 1: Время в прошлом или меньше часа (ТОЛЬКО для сегодня, ПРИОРИТЕТНАЯ)
                         if (isToday) {
                             const clientSlotHour = Math.floor(clientHour);
                             const clientSlotMinute = Math.round((clientHour - clientSlotHour) * 60);
@@ -850,8 +850,8 @@
                             }
                         }
                         
-                        // Если занято в календаре
-                        if (isBooked && !isDisabled) {
+                        // Проверка 2: Занято в календаре (только если еще не заблокировано по времени)
+                        if (!isDisabled && isBooked) {
                             isDisabled = true;
                             reason = 'Занято';
                         }
