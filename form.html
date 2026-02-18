@@ -836,22 +836,24 @@
                         let isDisabled = false;
                         let reason = '';
                         
-                        // Проверка 1: Абсолютное время - меньше часа от текущего момента (ПРИОРИТЕТНАЯ)
-                        // Создаём абсолютное время слота
-                        const slotDateTime = new Date(selectedDate + 'T' + formatTime(clientHour) + ':00');
-                        const nowDateTime = new Date();
-                        const timeDiffMs = slotDateTime - nowDateTime;
-                        const timeDiffMinutes = timeDiffMs / (1000 * 60);
-                        
-                        if (timeDiffMinutes < 60) {
-                            isDisabled = true;
-                            reason = timeDiffMinutes < 0 ? 'Прошло' : 'Менее 1ч';
-                        }
-                        
-                        // Проверка 2: Занято в календаре (только если еще не заблокировано по времени)
-                        if (!isDisabled && isBooked) {
+                        // Проверка 1: Занято в календаре (ПРИОРИТЕТ)
+                        if (isBooked) {
                             isDisabled = true;
                             reason = 'Занято';
+                        }
+                        
+                        // Проверка 2: Абсолютное время - меньше часа от текущего момента
+                        // (только если ещё не заблокировано календарём)
+                        if (!isDisabled) {
+                            const slotDateTime = new Date(selectedDate + 'T' + formatTime(clientHour) + ':00');
+                            const nowDateTime = new Date();
+                            const timeDiffMs = slotDateTime - nowDateTime;
+                            const timeDiffMinutes = timeDiffMs / (1000 * 60);
+                            
+                            if (timeDiffMinutes < 60) {
+                                isDisabled = true;
+                                reason = timeDiffMinutes < 0 ? 'Прошло' : 'Менее 1ч';
+                            }
                         }
                         
                         // Создаём элемент слота
