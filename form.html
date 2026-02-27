@@ -725,6 +725,40 @@
         
         dateInput.setAttribute('min', minDate);
 
+        // ============================================
+        // ОБРАБОТКА ПАКЕТНОЙ КОНСУЛЬТАЦИИ
+        // ============================================
+        const consultationTypeSelect = document.getElementById('consultationType');
+        const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+        
+        consultationTypeSelect.addEventListener('change', function() {
+            if (this.value === 'package') {
+                // Блокируем все слоты и показываем сообщение
+                timeSlotsContainer.innerHTML = `
+                    <div style="
+                        padding: 20px;
+                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(96, 165, 250, 0.05) 100%);
+                        border-radius: 12px;
+                        border: 1px solid rgba(59, 130, 246, 0.2);
+                    ">
+                        <p style="color: var(--primary-color); font-weight: 600; margin-bottom: 10px;">
+                            📞 Индивидуальное обсуждение
+                        </p>
+                        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+                            Этот тип консультации обсуждается индивидуально. Заполните форму, и наш менеджер свяжется с вами для согласования деталей по времени и программе занятий.
+                        </p>
+                    </div>
+                `;
+                selectedTimeInput.value = 'package'; // Специальное значение для пакета
+                selectedTimeInput.removeAttribute('required');
+            } else {
+                // Возвращаем обычное состояние
+                timeSlotsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">Сначала выберите дату консультации ☝️</p>';
+                selectedTimeInput.value = '';
+                selectedTimeInput.setAttribute('required', 'required');
+            }
+        });
+
         // Phone formatting
         phoneInput.addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
@@ -997,8 +1031,11 @@
             successMessage.style.display = 'none';
             errorMessage.style.display = 'none';
             
-            // Validate time selection
-            if (!selectedTimeInput.value) {
+            // Get consultation type first
+            const consultationType = document.getElementById('consultationType').value;
+            
+            // Validate time selection (skip for package)
+            if (!selectedTimeInput.value && consultationType !== 'package') {
                 errorMessage.textContent = '⚠ Пожалуйста, выберите время консультации';
                 errorMessage.style.display = 'block';
                 errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1029,31 +1066,34 @@
                 return;
             }
             
-            // Проверка даты - минимум завтра
-            const now = new Date();
-            const selectedDateObj = new Date(formData.consultationDate + 'T00:00:00');
-            const tomorrowDateObj = new Date(now);
-            tomorrowDateObj.setDate(tomorrowDateObj.getDate() + 1);
-            tomorrowDateObj.setHours(0, 0, 0, 0);
-            
-            if (selectedDateObj < tomorrowDateObj) {
-                errorMessage.textContent = '⚠ Запись возможна минимум за 24 часа';
-                errorMessage.style.display = 'block';
-                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return;
-            }
-            
-            // Проверка времени - минимум 24 часа от текущего момента
-            const [selectedHour, selectedMinute] = formData.consultationTime.split(':').map(Number);
-            const consultationDateTime = new Date(formData.consultationDate + 'T' + formData.consultationTime + ':00');
-            const timeDiffMs = consultationDateTime - now;
-            const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
-            
-            if (timeDiffHours < 24) {
-                errorMessage.textContent = '⚠ Необходимо минимум 24 часа до начала консультации';
-                errorMessage.style.display = 'block';
-                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                return;
+            // Проверка даты и времени (пропускаем для пакета)
+            if (formData.consultationType !== 'package') {
+                // Проверка даты - минимум завтра
+                const now = new Date();
+                const selectedDateObj = new Date(formData.consultationDate + 'T00:00:00');
+                const tomorrowDateObj = new Date(now);
+                tomorrowDateObj.setDate(tomorrowDateObj.getDate() + 1);
+                tomorrowDateObj.setHours(0, 0, 0, 0);
+                
+                if (selectedDateObj < tomorrowDateObj) {
+                    errorMessage.textContent = '⚠ Запись возможна минимум за 24 часа';
+                    errorMessage.style.display = 'block';
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+                
+                // Проверка времени - минимум 24 часа от текущего момента
+                const [selectedHour, selectedMinute] = formData.consultationTime.split(':').map(Number);
+                const consultationDateTime = new Date(formData.consultationDate + 'T' + formData.consultationTime + ':00');
+                const timeDiffMs = consultationDateTime - now;
+                const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
+                
+                if (timeDiffHours < 24) {
+                    errorMessage.textContent = '⚠ Необходимо минимум 24 часа до начала консультации';
+                    errorMessage.style.display = 'block';
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
             }
             
             // Telegram username validation
@@ -1087,6 +1127,34 @@
             btnText.innerHTML = 'Отправка <span class="loading"></span>';
             
             try {
+                // ПРОВЕРКА КОЛЛИЗИЙ: проверяем ещё раз перед отправкой (пропускаем для пакета)
+                if (formData.consultationType !== 'package') {
+                    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyF9bbu2p7XHkbsbeHWouJq5N07PQztBKSSdfkBSWsCGKfmVe_YRoqDiR3dv4OFSNGN/exec';
+                    const checkResponse = await fetch(
+                        `${GOOGLE_SCRIPT_URL}?action=checkAvailability&date=${formData.consultationDate}&clientOffset=${clientTimezoneOffset}`
+                    );
+                    
+                    const checkData = await checkResponse.json();
+                    
+                    if (checkData.status === 'success') {
+                        // Проверяем доступен ли выбранный слот
+                        if (!checkData.availableSlots.includes(formData.consultationTime)) {
+                            errorMessage.textContent = '⚠ К сожалению, это время только что заняли';
+                            errorMessage.style.display = 'block';
+                            errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            
+                            // Показываем кнопку поиска свободного времени
+                            const findFreeSlotContainer = document.getElementById('findFreeSlotContainer');
+                            if (findFreeSlotContainer) {
+                                findFreeSlotContainer.style.display = 'block';
+                                findFreeSlotContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                            
+                            return;
+                        }
+                    }
+                }
+                
                 // Send to Google Sheets
                 await sendToGoogleSheets(formData);
                 
