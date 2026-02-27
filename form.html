@@ -507,6 +507,7 @@
                         placeholder="@username"
                         required
                     >
+                    <p class="info-text" id="telegramInfo">Начинается с @, минимум 5 символов</p>
                 </div>
 
                 <div class="form-group">
@@ -1000,6 +1001,7 @@
             if (!selectedTimeInput.value) {
                 errorMessage.textContent = '⚠ Пожалуйста, выберите время консультации';
                 errorMessage.style.display = 'block';
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
             
@@ -1023,6 +1025,7 @@
                 !formData.consultationType || !formData.consultationDate) {
                 errorMessage.textContent = '⚠ Пожалуйста, заполните все обязательные поля';
                 errorMessage.style.display = 'block';
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
             
@@ -1036,6 +1039,7 @@
             if (selectedDateObj < tomorrowDateObj) {
                 errorMessage.textContent = '⚠ Запись возможна минимум за 24 часа';
                 errorMessage.style.display = 'block';
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
             
@@ -1048,22 +1052,35 @@
             if (timeDiffHours < 24) {
                 errorMessage.textContent = '⚠ Необходимо минимум 24 часа до начала консультации';
                 errorMessage.style.display = 'block';
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
             
             // Telegram username validation
             const telegramUsername = formData.telegram.substring(1);
+            const telegramInfo = document.getElementById('telegramInfo');
+            const telegramField = document.getElementById('telegram');
+            
             if (!formData.telegram.startsWith('@') || telegramUsername.length < 5) {
-                errorMessage.textContent = '⚠ Telegram ник должен начинаться с @ и содержать минимум 5 символов';
-                errorMessage.style.display = 'block';
+                telegramInfo.textContent = '⚠ Должен начинаться с @ и содержать минимум 5 символов';
+                telegramInfo.style.color = '#ef4444';
+                telegramField.style.borderColor = '#ef4444';
+                telegramField.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
             
             if (!/^[a-zA-Z0-9_]+$/.test(telegramUsername)) {
-                errorMessage.textContent = '⚠ Telegram ник может содержать только латинские буквы, цифры и _';
-                errorMessage.style.display = 'block';
+                telegramInfo.textContent = '⚠ Только латинские буквы, цифры и _';
+                telegramInfo.style.color = '#ef4444';
+                telegramField.style.borderColor = '#ef4444';
+                telegramField.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
+            
+            // Сброс стилей если всё ок
+            telegramInfo.textContent = 'Начинается с @, минимум 5 символов';
+            telegramInfo.style.color = 'var(--text-secondary)';
+            telegramField.style.borderColor = 'rgba(0, 245, 255, 0.2)';
             
             // Disable button and show loading
             submitBtn.disabled = true;
@@ -1081,23 +1098,28 @@
                 
                 // Show success
                 successMessage.style.display = 'block';
-                form.reset();
                 
-                // Очищаем динамические слоты
-                document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
-                selectedTimeInput.value = '';
-                
-                // Сбрасываем контейнер слотов
-                const timeSlotsContainer = document.getElementById('timeSlotsContainer');
-                timeSlotsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">Сначала выберите дату консультации ☝️</p>';
-                
-                // Scroll to success message
+                // Сначала прокручиваем, потом сбрасываем
                 successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Небольшая задержка перед сбросом формы
+                setTimeout(() => {
+                    form.reset();
+                    
+                    // Очищаем динамические слоты
+                    document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                    selectedTimeInput.value = '';
+                    
+                    // Сбрасываем контейнер слотов
+                    const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+                    timeSlotsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">Сначала выберите дату консультации ☝️</p>';
+                }, 300);
                 
             } catch (error) {
                 console.error('Error:', error);
                 errorMessage.textContent = '⚠ Ошибка отправки. Попробуйте ещё раз или свяжитесь напрямую.';
                 errorMessage.style.display = 'block';
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
             } finally {
                 submitBtn.disabled = false;
                 btnText.textContent = 'Записаться на консультацию';
