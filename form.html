@@ -753,9 +753,16 @@
                 selectedTimeInput.removeAttribute('required');
             } else {
                 // Возвращаем обычное состояние
-                timeSlotsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">Сначала выберите дату консультации ☝️</p>';
                 selectedTimeInput.value = '';
                 selectedTimeInput.setAttribute('required', 'required');
+                
+                // Если дата уже выбрана - перезагружаем слоты
+                if (dateInput.value) {
+                    const event = new Event('change', { bubbles: true });
+                    dateInput.dispatchEvent(event);
+                } else {
+                    timeSlotsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">Сначала выберите дату консультации ☝️</p>';
+                }
             }
         });
 
