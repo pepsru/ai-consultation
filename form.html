@@ -513,6 +513,7 @@
                     <label for="consultationType">◆ Тип консультации</label>
                     <select id="consultationType" name="consultationType" required>
                         <option value="">Выберите тип консультации</option>
+                        <option value="free">Бесплатная (30 мин.) - 0₽</option>
                         <option value="basic">Базовая (1 час) - от 3000₽</option>
                         <option value="advanced">Расширенная (2 часа) - от 5000₽</option>
                         <option value="intensive">Интенсив (4 часа) - от 9000₽</option>
@@ -708,12 +709,20 @@
         // const timeSlots = document.querySelectorAll('.time-slot'); // Не нужно - слоты динамические
         const selectedTimeInput = document.getElementById('selectedTime');
 
-        // Set minimum date to today (в локальном часовом поясе)
+        // Set minimum date to tomorrow (запись минимум за 24 часа)
         const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
         const today = now.getFullYear() + '-' + 
                       String(now.getMonth() + 1).padStart(2, '0') + '-' + 
                       String(now.getDate()).padStart(2, '0');
-        dateInput.setAttribute('min', today);
+        
+        const minDate = tomorrow.getFullYear() + '-' + 
+                        String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(tomorrow.getDate()).padStart(2, '0');
+        
+        dateInput.setAttribute('min', minDate);
 
         // Phone formatting
         phoneInput.addEventListener('input', function(e) {
@@ -842,17 +851,18 @@
                             reason = 'Занято';
                         }
                         
-                        // Проверка 2: Абсолютное время - меньше часа от текущего момента
+                        // Проверка 2: Абсолютное время - меньше 24 часов от текущего момента
                         // (только если ещё не заблокировано календарём)
                         if (!isDisabled) {
                             const slotDateTime = new Date(selectedDate + 'T' + formatTime(clientHour) + ':00');
                             const nowDateTime = new Date();
                             const timeDiffMs = slotDateTime - nowDateTime;
                             const timeDiffMinutes = timeDiffMs / (1000 * 60);
+                            const timeDiffHours = timeDiffMinutes / 60;
                             
-                            if (timeDiffMinutes < 60) {
+                            if (timeDiffHours < 24) {
                                 isDisabled = true;
-                                reason = timeDiffMinutes < 0 ? 'Прошло' : 'Менее 1ч';
+                                reason = timeDiffHours < 0 ? 'Прошло' : 'Менее 24ч';
                             }
                         }
                         
@@ -1016,28 +1026,29 @@
                 return;
             }
             
-            // Проверка даты - не должна быть в прошлом
+            // Проверка даты - минимум завтра
+            const now = new Date();
             const selectedDateObj = new Date(formData.consultationDate + 'T00:00:00');
-            const todayDateObj = new Date(today + 'T00:00:00');
-            if (selectedDateObj < todayDateObj) {
-                errorMessage.textContent = '⚠ Нельзя записаться на прошедшую дату';
+            const tomorrowDateObj = new Date(now);
+            tomorrowDateObj.setDate(tomorrowDateObj.getDate() + 1);
+            tomorrowDateObj.setHours(0, 0, 0, 0);
+            
+            if (selectedDateObj < tomorrowDateObj) {
+                errorMessage.textContent = '⚠ Запись возможна минимум за 24 часа';
                 errorMessage.style.display = 'block';
                 return;
             }
             
-            // Проверка времени - если сегодня, то не меньше часа от текущего
-            if (formData.consultationDate === today) {
-                const now = new Date();
-                const [selectedHour, selectedMinute] = formData.consultationTime.split(':').map(Number);
-                const selectedTimeInMinutes = selectedHour * 60 + selectedMinute;
-                const currentTimeInMinutes = now.getHours() * 60 + now.getMinutes();
-                const timeDiff = selectedTimeInMinutes - currentTimeInMinutes;
-                
-                if (timeDiff < 60) {
-                    errorMessage.textContent = '⚠ Необходимо минимум 1 час до начала консультации';
-                    errorMessage.style.display = 'block';
-                    return;
-                }
+            // Проверка времени - минимум 24 часа от текущего момента
+            const [selectedHour, selectedMinute] = formData.consultationTime.split(':').map(Number);
+            const consultationDateTime = new Date(formData.consultationDate + 'T' + formData.consultationTime + ':00');
+            const timeDiffMs = consultationDateTime - now;
+            const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
+            
+            if (timeDiffHours < 24) {
+                errorMessage.textContent = '⚠ Необходимо минимум 24 часа до начала консультации';
+                errorMessage.style.display = 'block';
+                return;
             }
             
             // Telegram username validation
