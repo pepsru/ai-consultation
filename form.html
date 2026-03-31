@@ -1168,8 +1168,13 @@
                 // Create Google Calendar event
                 await createGoogleCalendarEvent(formData);
                 
-                // Send to Telegram (optional)
-                sendToTelegram(formData);
+                // Send to Telegram (optional) - всегда отправляем
+                try {
+                    sendToTelegram(formData);
+                } catch (telegramError) {
+                    console.log('Ошибка отправки в Telegram:', telegramError);
+                    // Не прерываем процесс если Telegram не работает
+                }
                 
                 // Show success
                 successMessage.style.display = 'block';
@@ -1222,12 +1227,29 @@
             // Отправка данных в Google Sheets
             const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
-                mode: 'no-cors',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(payload)
             });
+            
+            // Проверяем ответ на ошибку пересечения (если доступен)
+            try {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const result = await response.json();
+                    if (result.status === 'error' && result.collision) {
+                        throw new Error(result.message);
+                    }
+                }
+            } catch (e) {
+                // Если ошибка пересечения - пробрасываем
+                if (e.message && e.message.includes('Время уже занято')) {
+                    throw e;
+                }
+                // Иначе игнорируем (возможно CORS или другая ошибка парсинга)
+                console.log('Не удалось прочитать ответ, но запрос отправлен');
+            }
             
             console.log('Данные отправлены в Google Sheets:', payload);
             return Promise.resolve();
