@@ -1168,7 +1168,8 @@
                 // Create Google Calendar event
                 await createGoogleCalendarEvent(formData);
                 
-                // Telegram уведомление теперь отправляется из Apps Script
+                // Send to Telegram (optional)
+                sendToTelegram(formData);
                 
                 // Show success
                 successMessage.style.display = 'block';
@@ -1221,13 +1222,13 @@
             // Отправка данных в Google Sheets
             const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
+                mode: 'no-cors',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify(payload)
             });
             
-            // Игнорируем ответ (no-cors режим)
             console.log('Данные отправлены в Google Sheets:', payload);
             return Promise.resolve();
         }
