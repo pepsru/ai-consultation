@@ -1163,16 +1163,14 @@
                 timestamp: data.timestamp
             };
             
-            // Отправляем через URLSearchParams — работает без CORS-проблем с Apps Script
-            const formBody = 'data=' + encodeURIComponent(JSON.stringify(payload));
-            
+            // no-cors + JSON — именно так работало изначально с Apps Script
             const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
+                mode: 'no-cors',
                 headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Content-Type': 'application/json',
                 },
-                body: formBody,
-                redirect: 'follow'
+                body: JSON.stringify(payload)
             });
             
             console.log('Данные отправлены в Google Sheets:', payload);
