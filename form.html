@@ -1118,7 +1118,9 @@
                 // Отправка в Google Sheets (+ Calendar через Apps Script)
                 await sendToGoogleSheets(formData);
                 
-                // Уведомление в Telegram
+                // Telegram: основной канал через Apps Script (работает в РФ без VPN)
+                sendTelegramViaScript(formData);
+                // Telegram: резервный прямой вызов (работает с VPN)
                 sendToTelegram(formData);
                 
                 // Показываем успех
@@ -1145,7 +1147,35 @@
         });
 
         // ============================================
-        // TELEGRAM NOTIFICATION (прямой вызов из браузера)
+        // TELEGRAM через Apps Script (GET-запрос)
+        // Работает в РФ без VPN — запрос идёт через
+        // серверы Google, которые не заблокированы
+        // ============================================
+        function sendTelegramViaScript(data) {
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxX9Y_FN0YV54P-b3oTFUwmaszgQ2YGBJ9-US4s3MgAExHfDH8Ba7ZgKKkMjmdB7SEj/exec';
+            
+            const params = new URLSearchParams({
+                action: 'sendTelegram',
+                fullName:          data.fullName,
+                phone:             data.phone,
+                telegram:          data.telegram,
+                consultationType:  data.consultationType,
+                consultationDate:  data.consultationDate,
+                consultationTime:  data.consultationTime,
+                clientTime:        data.clientTime        || data.consultationTime,
+                clientTimezone:    data.clientTimezone    || '',
+                comments:          data.comments          || '',
+                timestamp:         data.timestamp
+            });
+            
+            fetch(`${GOOGLE_SCRIPT_URL}?${params.toString()}`)
+                .then(r => r.json())
+                .then(d => console.log('Telegram через GS:', d))
+                .catch(err => console.error('Ошибка Telegram GS:', err));
+        }
+
+        // ============================================
+        // TELEGRAM прямой (резерв, работает с VPN)
         // ============================================
         function sendToTelegram(data) {
             const TELEGRAM_BOT_TOKEN = '8596783518:AAH7C8jheZC_95gFvZGDvLp6eH_v4hvYryE';
@@ -1180,8 +1210,8 @@ ${data.comments || 'Не указан'}
                 })
             })
             .then(r => r.json())
-            .then(d => console.log('Telegram ответ:', d))
-            .catch(err => console.error('Ошибка Telegram:', err));
+            .then(d => console.log('Telegram прямой:', d))
+            .catch(err => console.error('Ошибка Telegram прямой:', err));
         }
 
         // ============================================
