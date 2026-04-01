@@ -1,37 +1,1331 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Консультация</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Консультация | Нейрографика</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #3b82f6;
+            --secondary-color: #60a5fa;
+            --accent-color: #2563eb;
+            --bg-dark: #0a0a0f;
+            --bg-card: #1a1a2e;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0c0;
+            --border-glow: rgba(0, 245, 255, 0.3);
+        }
+
+        @keyframes backgroundShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 0 20px var(--border-glow); }
+            50% { box-shadow: 0 0 40px var(--primary-color); }
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', sans-serif;
+            background: var(--bg-dark);
+            background-image: 
+                radial-gradient(circle at 20% 50%, rgba(124, 58, 237, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(0, 245, 255, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(255, 0, 255, 0.1) 0%, transparent 50%);
+            background-size: 100% 100%;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* Neural network background - DISABLED for performance */
+        .neural-bg {
+            display: none;
+        }
+
+        .neural-node {
+            display: none;
+        }
+
+        .container {
+            background: rgba(26, 26, 46, 0.8);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 0 60px rgba(0, 245, 255, 0.05);
+            max-width: 600px;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            background: linear-gradient(135deg, 
+                rgba(124, 58, 237, 0.3) 0%, 
+                rgba(0, 245, 255, 0.2) 100%);
+            padding: 50px 40px;
+            text-align: center;
+            position: relative;
+        }
+
+        .ai-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            position: relative;
+            display: inline-block;
+            filter: drop-shadow(0 0 20px var(--primary-color));
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            position: relative;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .benefits {
+            background: linear-gradient(135deg, 
+                rgba(124, 58, 237, 0.1) 0%, 
+                rgba(0, 245, 255, 0.05) 100%);
+            padding: 25px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            position: relative;
+        }
+
+        .benefits h3 {
+            color: var(--primary-color);
+            margin-bottom: 18px;
+            font-size: 18px;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .benefits ul {
+            list-style: none;
+            padding: 0;
+            position: relative;
+        }
+
+        .benefits li {
+            padding: 10px 0;
+            color: var(--text-secondary);
+            position: relative;
+            padding-left: 30px;
+        }
+
+        .benefits li::before {
+            content: "◆";
+            position: absolute;
+            left: 0;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 10px;
+            color: var(--text-primary);
+            font-weight: 500;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(0, 245, 255, 0.2);
+            border-radius: 15px;
+            font-size: 16px;
+            color: var(--text-primary);
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 
+                0 0 20px rgba(0, 245, 255, 0.2),
+                inset 0 0 20px rgba(0, 245, 255, 0.05);
+        }
+
+        input::placeholder, textarea::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2300f5ff'%3E%3Cpath d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 20px center;
+            padding-right: 45px;
+        }
+
+        select option {
+            background: var(--bg-card);
+            color: var(--text-primary);
+            padding: 10px;
+        }
+
+        .datetime-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--accent-color), var(--primary-color));
+            color: var(--text-primary);
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .submit-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.2), 
+                transparent);
+            transition: left 0.5s ease;
+        }
+
+        .submit-btn:hover::before {
+            left: 100%;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 
+                0 15px 35px rgba(124, 58, 237, 0.4),
+                0 0 30px var(--primary-color);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .message {
+            padding: 18px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 500;
+            display: none;
+            animation: slideDown 0.5s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-message {
+            background: linear-gradient(135deg, 
+                rgba(16, 185, 129, 0.2), 
+                rgba(5, 150, 105, 0.2));
+            border: 1px solid rgba(16, 185, 129, 0.5);
+            color: #10b981;
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, 
+                rgba(239, 68, 68, 0.2), 
+                rgba(220, 38, 38, 0.2));
+            border: 1px solid rgba(239, 68, 68, 0.5);
+            color: #ef4444;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .info-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            font-style: italic;
+        }
+
+        .time-slot {
+            display: inline-block;
+            padding: 8px 16px;
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid rgba(0, 245, 255, 0.3);
+            border-radius: 10px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--text-secondary);
+        }
+
+        .time-slot:hover {
+            background: rgba(0, 245, 255, 0.2);
+            color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .time-slot.selected {
+            background: var(--primary-color);
+            color: var(--bg-dark);
+            border-color: var(--primary-color);
+        }
+
+        .time-slots-container {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                border-radius: 20px;
+            }
+            
+            .header {
+                padding: 40px 25px;
+            }
+            
+            .header h1 {
+                font-size: 26px;
+            }
+            
+            .form-container {
+                padding: 30px 25px;
+            }
+
+            .datetime-group {
+                grid-template-columns: 1fr;
+            }
+
+            .ai-icon {
+                font-size: 48px;
+            }
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-dark);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--primary-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+        }
+    </style>
 </head>
 <body>
-  <script>
-    // ============================================
-    // РЕЖИМ ТЕХНИЧЕСКИХ РАБОТ
-    // ============================================
-    // true  = показывать заглушку (maintenance.html)
-    // false = показывать форму (form.html)
-    
-    const MAINTENANCE_MODE = false;
-    
-    // ============================================
-    // АВТОМАТИЧЕСКОЕ ПЕРЕНАПРАВЛЕНИЕ
-    // ============================================
-    
-    if (MAINTENANCE_MODE) {
-      // Техработы - показываем заглушку
-      window.location.replace('maintenance.html?t=' + Date.now());
-    } else {
-      // Всё работает - показываем форму
-      window.location.replace('form.html?t=' + Date.now());
-    }
-  </script>
-  
-  <noscript>
-    <p>Если перенаправление не произошло, <a href="form.html">нажмите сюда</a>.</p>
-  </noscript>
+    <!-- Neural network background -->
+    <div class="neural-bg" id="neuralBg"></div>
+
+    <div class="container">
+        <div class="header">
+            <div class="ai-icon">🧠</div>
+            <h1>AI Консультация</h1>
+            <p>Откройте мир безграничных возможностей нейрографики</p>
+        </div>
+        
+        <div class="form-container">
+            <div class="benefits">
+                <h3>◆ Что вас ждёт</h3>
+                <ul>
+                    <li>Персональная стратегия работы с AI</li>
+                    <li>Мастерство промпт-инжиниринга</li>
+                    <li>Секреты создания уникальной графики</li>
+                    <li>Практика на реальных проектах</li>
+                    <li>Монетизация ваших навыков</li>
+                </ul>
+            </div>
+
+            <!-- Информация о часовых поясах -->
+            <div class="benefits" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(96, 165, 250, 0.05) 100%);">
+                <h3>⏰ Время консультаций</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                    <strong style="color: var(--primary-color);">Рабочее время:</strong> 10:00 - 20:00 (Екатеринбург, UTC+5)
+                </p>
+                <p style="color: var(--text-secondary); font-size: 14px;" id="timezoneInfo">
+                    📍 Ваш часовой пояс: <span id="clientTimezone" style="color: var(--primary-color);">определяется...</span><br>
+                    🕐 Слоты показаны в вашем времени
+                </p>
+            </div>
+
+            <div class="success-message message" id="successMessage">
+                ✓ Заявка успешно отправлена!
+            </div>
+
+            <div class="error-message message" id="errorMessage">
+                ⚠ Произошла ошибка. Проверьте правильность заполнения всех полей.
+            </div>
+
+            <!-- 
+            ============================================
+            DEBUG INFO BLOCK - ЗАКОММЕНТИРОВАН
+            ============================================
+            Этот блок использовался для отладки интеграции с Telegram Mini App.
+            Показывал:
+            - Открыта ли форма в Telegram или браузере
+            - User ID, Username, Имя пользователя из Telegram
+            
+            Для включения отладки:
+            1. Раскомментируйте строку ниже
+            2. В JavaScript найдите "debugInfo.style.display = 'block';" (строки ~570 и ~584)
+            3. Раскомментируйте эти строки
+            
+            <div id="debugInfo" style="display: none; padding: 15px; background: rgba(59, 130, 246, 0.2); border-radius: 12px; margin-bottom: 20px; font-size: 14px; color: #60a5fa;"></div>
+            -->
+
+            <form id="consultationForm">
+                <div class="form-group">
+                    <label for="fullName">◆ ФИО</label>
+                    <input 
+                        type="text" 
+                        id="fullName" 
+                        name="fullName" 
+                        placeholder="Введите полное имя"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">◆ Номер телефона</label>
+                    <input 
+                        type="tel" 
+                        id="phone" 
+                        name="phone" 
+                        placeholder="+7 (999) 123-45-67"
+                        required
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="telegram">◆ Telegram</label>
+                    <input 
+                        type="text" 
+                        id="telegram" 
+                        name="telegram" 
+                        placeholder="@username"
+                        required
+                    >
+                    <p class="info-text" id="telegramInfo">Начинается с @, минимум 5 символов</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="consultationType">◆ Тип консультации</label>
+                    <select id="consultationType" name="consultationType" required>
+                        <option value="">Выберите тип консультации</option>
+                        <option value="free">Бесплатная (30 мин.) - 0₽</option>
+                        <option value="basic">Базовая (1 час) - от 3000₽</option>
+                        <option value="advanced">Расширенная (2 часа) - от 5000₽</option>
+                        <option value="intensive">Интенсив (4 часа) - от 9000₽</option>
+                        <option value="package">Пакет (5 занятий) - от 20000₽</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="consultationDate">◆ Желаемая дата</label>
+                    <input 
+                        type="date" 
+                        id="consultationDate" 
+                        name="consultationDate"
+                        required
+                    >
+                    <p class="info-text">Выберите удобную дату для консультации</p>
+                </div>
+
+                <div class="form-group">
+                    <label>◆ Желаемое время</label>
+                    <div class="time-slots-container" id="timeSlotsContainer">
+                        <!-- Слоты загружаются автоматически после выбора даты -->
+                        <p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">
+                            Сначала выберите дату консультации ☝️
+                        </p>
+                    </div>
+                    <input type="hidden" id="selectedTime" name="selectedTime" required>
+                    <p class="info-text">Слоты показаны в вашем часовом поясе</p>
+                    
+                    <!-- Кнопка поиска свободного времени (показывается только если всё занято) -->
+                    <div id="findFreeSlotContainer" style="display: none; margin-top: 15px;">
+                        <button type="button" id="findFreeSlotBtn" style="
+                            width: 100%;
+                            padding: 12px;
+                            background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+                            color: white;
+                            border: none;
+                            border-radius: 12px;
+                            font-size: 15px;
+                            font-weight: 600;
+                            cursor: pointer;
+                            transition: all 0.3s ease;
+                        ">
+                            🔍 Найти ближайшее свободное время
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="comments">◆ Комментарий (опционально)</label>
+                    <textarea 
+                        id="comments" 
+                        name="comments" 
+                        rows="3"
+                        placeholder="Расскажите о своих целях и ожиданиях от консультации..."
+                    ></textarea>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">
+                    <span id="btnText">Записаться на консультацию</span>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // TELEGRAM INTEGRATION
+        // ============================================
+        // TELEGRAM INTEGRATION
+        // ============================================
+        let tg = window.Telegram?.WebApp;
+        let isTelegramApp = false;
+        
+        // DEBUG: Раскомментируйте строку ниже для отладки
+        // const debugInfo = document.getElementById('debugInfo');
+        
+        if (tg && tg.initData) {
+            isTelegramApp = true;
+            try {
+                tg.ready();
+                tg.expand();
+            } catch (e) {}
+            
+            const user = tg.initDataUnsafe?.user;
+            
+            /* 
+            ============================================
+            DEBUG INFO DISPLAY - ЗАКОММЕНТИРОВАН
+            ============================================
+            Этот код показывал информацию о пользователе Telegram
+            на самой форме для отладки интеграции.
+            
+            Для включения отладки:
+            1. Раскомментируйте HTML блок debugInfo выше (строка ~450)
+            2. Раскомментируйте строку "const debugInfo = ..." (строка ~559)
+            3. Раскомментируйте блоки ниже (строки 571-577 и 593-595)
+            
+            debugInfo.style.display = 'block';
+            debugInfo.innerHTML = `
+                📱 <b>Telegram Mini App:</b> ДА<br>
+                👤 <b>User ID:</b> ${user?.id || 'нет'}<br>
+                🔤 <b>Username:</b> ${user?.username ? '@' + user.username : 'НЕТ USERNAME'}<br>
+                📝 <b>Имя:</b> ${user?.first_name || 'нет'} ${user?.last_name || ''}
+            `;
+            */
+            
+            // Автозаполнение данных из Telegram
+            setTimeout(() => {
+                if (user?.username) {
+                    telegramInput.value = '@' + user.username;
+                }
+                if (user?.first_name) {
+                    const fullName = user.first_name + (user.last_name ? ' ' + user.last_name : '');
+                    const nameInput = document.getElementById('fullName');
+                    if (!nameInput.value) {
+                        nameInput.value = fullName;
+                    }
+                }
+            }, 300);
+        } 
+        /* 
+        ============================================
+        DEBUG для браузера - ЗАКОММЕНТИРОВАН
+        ============================================
+        else {
+            debugInfo.style.display = 'block';
+            debugInfo.innerHTML = '🌐 <b>Браузер:</b> форма открыта в обычном браузере';
+        }
+        */
+
+        // ============================================
+        // ОПРЕДЕЛЕНИЕ ЧАСОВОГО ПОЯСА КЛИЕНТА
+        // ============================================
+        
+        const MY_TIMEZONE_OFFSET = 300; // UTC+5 в минутах (5 * 60 = 300)
+        const WORK_START_HOUR = 10; // Начало рабочего дня (в вашем времени)
+        const WORK_END_HOUR = 20;   // Конец рабочего дня
+        
+        // Получаем часовой пояс клиента
+        const clientTimezoneOffset = -new Date().getTimezoneOffset(); // В минутах
+        const clientTimezoneName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        
+        // Разница в часах между клиентом и вами
+        const timeDifferenceMinutes = clientTimezoneOffset - MY_TIMEZONE_OFFSET;
+        const timeDifferenceHours = timeDifferenceMinutes / 60;
+        
+        // Показываем информацию о часовом поясе
+        const clientTimezoneEl = document.getElementById('clientTimezone');
+        if (clientTimezoneEl) {
+            const utcOffset = clientTimezoneOffset / 60;
+            const sign = utcOffset >= 0 ? '+' : '';
+            clientTimezoneEl.textContent = `${clientTimezoneName} (UTC${sign}${utcOffset})`;
+        }
+        
+        console.log('🌍 Часовые пояса:', {
+            client: clientTimezoneName,
+            clientOffset: clientTimezoneOffset,
+            myOffset: MY_TIMEZONE_OFFSET,
+            difference: timeDifferenceHours + ' часов'
+        });
+        
+        // ============================================
+        // ФУНКЦИЯ КОНВЕРСИИ ВРЕМЕНИ
+        // ============================================
+        
+        // Конвертирует ваше время в время клиента
+        function convertMyTimeToClient(myHour) {
+            return myHour + timeDifferenceHours;
+        }
+        
+        // Конвертирует время клиента в ваше время
+        function convertClientTimeToMy(clientHour) {
+            return clientHour - timeDifferenceHours;
+        }
+        
+        // Форматирует время для отображения
+        function formatTime(hour) {
+            const h = Math.floor(hour);
+            const m = Math.round((hour - h) * 60);
+            return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+        }
+
+        // Form elements
+        const form = document.getElementById('consultationForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const btnText = document.getElementById('btnText');
+        const successMessage = document.getElementById('successMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const phoneInput = document.getElementById('phone');
+        const telegramInput = document.getElementById('telegram');
+        const dateInput = document.getElementById('consultationDate');
+        // const timeSlots = document.querySelectorAll('.time-slot'); // Не нужно - слоты динамические
+        const selectedTimeInput = document.getElementById('selectedTime');
+
+        // Set minimum date to tomorrow (запись минимум за 24 часа)
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const today = now.getFullYear() + '-' + 
+                      String(now.getMonth() + 1).padStart(2, '0') + '-' + 
+                      String(now.getDate()).padStart(2, '0');
+        
+        const minDate = tomorrow.getFullYear() + '-' + 
+                        String(tomorrow.getMonth() + 1).padStart(2, '0') + '-' + 
+                        String(tomorrow.getDate()).padStart(2, '0');
+        
+        dateInput.setAttribute('min', minDate);
+
+        // ============================================
+        // ОБРАБОТКА ПАКЕТНОЙ КОНСУЛЬТАЦИИ
+        // ============================================
+        const consultationTypeSelect = document.getElementById('consultationType');
+        const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+        
+        consultationTypeSelect.addEventListener('change', function() {
+            if (this.value === 'package') {
+                // Блокируем все слоты и показываем сообщение
+                timeSlotsContainer.innerHTML = `
+                    <div style="
+                        padding: 20px;
+                        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(96, 165, 250, 0.05) 100%);
+                        border-radius: 12px;
+                        border: 1px solid rgba(59, 130, 246, 0.2);
+                    ">
+                        <p style="color: var(--primary-color); font-weight: 600; margin-bottom: 10px;">
+                            📞 Индивидуальное обсуждение
+                        </p>
+                        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6;">
+                            Этот тип консультации обсуждается индивидуально. Заполните форму, и наш менеджер свяжется с вами для согласования деталей по времени и программе занятий.
+                        </p>
+                    </div>
+                `;
+                selectedTimeInput.value = 'package'; // Специальное значение для пакета
+                selectedTimeInput.removeAttribute('required');
+            } else {
+                // Возвращаем обычное состояние
+                selectedTimeInput.value = '';
+                selectedTimeInput.setAttribute('required', 'required');
+                
+                // Если дата уже выбрана - перезагружаем слоты
+                if (dateInput.value) {
+                    const event = new Event('change', { bubbles: true });
+                    dateInput.dispatchEvent(event);
+                } else {
+                    timeSlotsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">Сначала выберите дату консультации ☝️</p>';
+                }
+            }
+        });
+
+        // Phone formatting
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            if (value.length > 0) {
+                if (value[0] === '7' || value[0] === '8') {
+                    value = '7' + value.substring(1);
+                } else if (value[0] !== '7') {
+                    value = '7' + value;
+                }
+                
+                let formatted = '+7';
+                if (value.length > 1) {
+                    formatted += ' (' + value.substring(1, 4);
+                }
+                if (value.length >= 5) {
+                    formatted += ') ' + value.substring(4, 7);
+                }
+                if (value.length >= 8) {
+                    formatted += '-' + value.substring(7, 9);
+                }
+                if (value.length >= 10) {
+                    formatted += '-' + value.substring(9, 11);
+                }
+                
+                e.target.value = formatted;
+            }
+        });
+
+        // Telegram username validation
+        telegramInput.addEventListener('input', function(e) {
+            let value = e.target.value;
+            
+            if (value && !value.startsWith('@')) {
+                value = '@' + value;
+            }
+            
+            let username = value.substring(1);
+            username = username.replace(/[^a-zA-Z0-9_]/g, '');
+            
+            if (username.length > 0 && /^\d/.test(username)) {
+                username = username.substring(1);
+            }
+            
+            e.target.value = username ? '@' + username : '';
+            
+            if (username.length >= 5) {
+                e.target.style.borderColor = 'var(--primary-color)';
+            } else if (username.length > 0) {
+                e.target.style.borderColor = '#fbbf24';
+            } else {
+                e.target.style.borderColor = 'rgba(0, 245, 255, 0.2)';
+            }
+        });
+
+        // ============================================
+        // TIME SLOT HANDLERS
+        // ============================================
+        // Обработчики кликов теперь добавляются динамически
+        // при генерации слотов в функции проверки доступности
+
+        // ============================================
+        // ПРОВЕРКА ДОСТУПНОСТИ СЛОТОВ С КОНВЕРСИЕЙ
+        // ============================================
+        dateInput.addEventListener('change', async function() {
+            const selectedDate = this.value;
+            if (!selectedDate) return;
+            
+            const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+            const findFreeSlotContainer = document.getElementById('findFreeSlotContainer');
+            
+            // Показываем индикатор загрузки
+            timeSlotsContainer.innerHTML = '<p style="color: var(--primary-color); font-size: 14px; padding: 15px;">⏳ Загрузка доступных слотов...</p>';
+            timeSlotsContainer.style.opacity = '0.5';
+            timeSlotsContainer.style.pointerEvents = 'none';
+            findFreeSlotContainer.style.display = 'none';
+            
+            try {
+                const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxX9Y_FN0YV54P-b3oTFUwmaszgQ2YGBJ9-US4s3MgAExHfDH8Ba7ZgKKkMjmdB7SEj/exec';
+                const response = await fetch(
+                    `${GOOGLE_SCRIPT_URL}?action=checkAvailability&date=${selectedDate}&clientOffset=${clientTimezoneOffset}`
+                );
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    const now = new Date();
+                    const currentHourClient = now.getHours();
+                    const currentMinuteClient = now.getMinutes();
+                    
+                    // Проверяем не выбрана ли прошлая дата
+                    const selectedDateObj = new Date(selectedDate + 'T00:00:00');
+                    const todayDateObj = new Date(today + 'T00:00:00');
+                    const isPastDate = selectedDateObj < todayDateObj;
+                    const isToday = selectedDate === today;
+                    
+                    // Если выбрана прошлая дата - показываем сообщение
+                    if (isPastDate) {
+                        timeSlotsContainer.innerHTML = '<p style="color: #ef4444; font-size: 14px; padding: 15px;">⚠️ Нельзя выбрать прошедшую дату</p>';
+                        return;
+                    }
+                    
+                    // Очищаем старые слоты
+                    timeSlotsContainer.innerHTML = '';
+                    
+                    let freeCount = 0;
+                    
+                    // Генерируем ВСЕ слоты (свободные + занятые)
+                    data.allSlots.forEach(myTimeSlot => {
+                        const [myHour, myMinute] = myTimeSlot.split(':').map(Number);
+                        
+                        // Конвертируем в время клиента
+                        const clientHour = myHour + timeDifferenceHours;
+                        const clientTime = formatTime(clientHour);
+                        
+                        // Проверяем занятость в календаре
+                        const isBooked = data.bookedSlots.includes(myTimeSlot);
+                        
+                        let isDisabled = false;
+                        let reason = '';
+                        
+                        // Проверка 1: Занято в календаре (ПРИОРИТЕТ)
+                        if (isBooked) {
+                            isDisabled = true;
+                            reason = 'Занято';
+                        }
+                        
+                        // Проверка 2: Абсолютное время - меньше 24 часов от текущего момента
+                        // (только если ещё не заблокировано календарём)
+                        if (!isDisabled) {
+                            const slotDateTime = new Date(selectedDate + 'T' + formatTime(clientHour) + ':00');
+                            const nowDateTime = new Date();
+                            const timeDiffMs = slotDateTime - nowDateTime;
+                            const timeDiffMinutes = timeDiffMs / (1000 * 60);
+                            const timeDiffHours = timeDiffMinutes / 60;
+                            
+                            if (timeDiffHours < 24) {
+                                isDisabled = true;
+                                reason = timeDiffHours < 0 ? 'Прошло' : 'Менее 24ч';
+                            }
+                        }
+                        
+                        // Создаём элемент слота
+                        const slotEl = document.createElement('div');
+                        slotEl.className = 'time-slot';
+                        slotEl.setAttribute('data-time', myTimeSlot);
+                        slotEl.setAttribute('data-client-time', clientTime);
+                        slotEl.textContent = clientTime;
+                        
+                        if (isDisabled) {
+                            slotEl.classList.add('disabled');
+                            slotEl.style.opacity = '0.3';
+                            slotEl.style.cursor = 'not-allowed';
+                            slotEl.style.pointerEvents = 'none';
+                            slotEl.title = reason;
+                            
+                            // Добавляем текст причины
+                            const reasonEl = document.createElement('span');
+                            reasonEl.style.display = 'block';
+                            reasonEl.style.fontSize = '11px';
+                            reasonEl.style.marginTop = '2px';
+                            reasonEl.style.color = '#ef4444';
+                            reasonEl.textContent = reason;
+                            slotEl.appendChild(reasonEl);
+                        } else {
+                            freeCount++;
+                            slotEl.title = `Ваше время: ${clientTime}\nВремя консультанта: ${myTimeSlot} (UTC+5)`;
+                            slotEl.addEventListener('click', function() {
+                                if (this.classList.contains('disabled')) return;
+                                
+                                document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                                this.classList.add('selected');
+                                selectedTimeInput.value = this.getAttribute('data-time');
+                                selectedTimeInput.setAttribute('data-client-time', this.getAttribute('data-client-time'));
+                            });
+                        }
+                        
+                        timeSlotsContainer.appendChild(slotEl);
+                    });
+                    
+                    // Если все слоты заняты - показываем кнопку поиска
+                    if (freeCount === 0) {
+                        findFreeSlotContainer.style.display = 'block';
+                    }
+                    
+                    console.log('✅ Слоты обновлены:', {
+                        total: data.allSlots.length,
+                        free: freeCount,
+                        booked: data.bookedSlots.length
+                    });
+                }
+                
+            } catch (error) {
+                console.error('Ошибка проверки:', error);
+                timeSlotsContainer.innerHTML = '<p style="color: #ef4444; font-size: 14px; padding: 15px;">⚠️ Ошибка загрузки. Попробуйте обновить страницу.</p>';
+            } finally {
+                timeSlotsContainer.style.opacity = '1';
+                timeSlotsContainer.style.pointerEvents = 'auto';
+            }
+        });
+
+        // ============================================
+        // ПОИСК БЛИЖАЙШЕГО СВОБОДНОГО ВРЕМЕНИ
+        // ============================================
+        document.getElementById('findFreeSlotBtn').addEventListener('click', async function() {
+            const btn = this;
+            const originalText = btn.textContent;
+            btn.disabled = true;
+            btn.textContent = '🔍 Поиск свободного времени...';
+            
+            try {
+                const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxX9Y_FN0YV54P-b3oTFUwmaszgQ2YGBJ9-US4s3MgAExHfDH8Ba7ZgKKkMjmdB7SEj/exec';
+                
+                // Ищем ближайшую свободную дату (проверяем следующие 5 дней)
+                const startDate = new Date(dateInput.value);
+                let foundDate = null;
+                let foundSlots = null;
+                
+                for (let i = 1; i <= 5; i++) {
+                    const checkDate = new Date(startDate);
+                    checkDate.setDate(checkDate.getDate() + i);
+                    const dateStr = checkDate.getFullYear() + '-' + 
+                                   String(checkDate.getMonth() + 1).padStart(2, '0') + '-' + 
+                                   String(checkDate.getDate()).padStart(2, '0');
+                    
+                    const response = await fetch(
+                        `${GOOGLE_SCRIPT_URL}?action=checkAvailability&date=${dateStr}&clientOffset=${clientTimezoneOffset}`
+                    );
+                    
+                    const data = await response.json();
+                    
+                    if (data.status === 'success' && data.availableSlots.length > 0) {
+                        foundDate = dateStr;
+                        foundSlots = data;
+                        break;
+                    }
+                }
+                
+                if (foundDate) {
+                    // Подставляем найденную дату
+                    dateInput.value = foundDate;
+                    
+                    // Триггерим событие change для загрузки слотов
+                    const event = new Event('change', { bubbles: true });
+                    dateInput.dispatchEvent(event);
+                    
+                    // Прокручиваем к слотам
+                    document.getElementById('timeSlotsContainer').scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'center' 
+                    });
+                } else {
+                    alert('😔 К сожалению, все слоты заняты на ближайшие 5 дней. Попробуйте выбрать дату позже или свяжитесь напрямую.');
+                }
+                
+            } catch (error) {
+                console.error('Ошибка поиска:', error);
+                alert('⚠️ Ошибка поиска свободного времени. Попробуйте выбрать дату вручную.');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = originalText;
+            }
+        });
+
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // Hide previous messages
+            successMessage.style.display = 'none';
+            errorMessage.style.display = 'none';
+            
+            // Get consultation type first
+            const consultationType = document.getElementById('consultationType').value;
+            
+            // Validate time selection (skip for package)
+            if (!selectedTimeInput.value && consultationType !== 'package') {
+                errorMessage.textContent = '⚠ Пожалуйста, выберите время консультации';
+                errorMessage.style.display = 'block';
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            
+            // Get form data
+            const formData = {
+                fullName: document.getElementById('fullName').value.trim(),
+                phone: document.getElementById('phone').value.trim(),
+                telegram: document.getElementById('telegram').value.trim(),
+                consultationType: document.getElementById('consultationType').value,
+                consultationDate: document.getElementById('consultationDate').value,
+                consultationTime: selectedTimeInput.value, // ВАШЕ время (UTC+5)
+                clientTime: selectedTimeInput.getAttribute('data-client-time') || selectedTimeInput.value, // Время клиента
+                clientTimezone: `${clientTimezoneName} (UTC${clientTimezoneOffset >= 0 ? '+' : ''}${clientTimezoneOffset / 60})`,
+                clientTimezoneOffset: clientTimezoneOffset,
+                comments: document.getElementById('comments').value.trim(),
+                timestamp: new Date().toISOString()
+            };
+            
+            // Validate
+            if (!formData.fullName || !formData.phone || !formData.telegram || 
+                !formData.consultationType || !formData.consultationDate) {
+                errorMessage.textContent = '⚠ Пожалуйста, заполните все обязательные поля';
+                errorMessage.style.display = 'block';
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            
+            // Проверка даты и времени (пропускаем для пакета)
+            if (formData.consultationType !== 'package') {
+                // Проверка даты - минимум завтра
+                const now = new Date();
+                const selectedDateObj = new Date(formData.consultationDate + 'T00:00:00');
+                const tomorrowDateObj = new Date(now);
+                tomorrowDateObj.setDate(tomorrowDateObj.getDate() + 1);
+                tomorrowDateObj.setHours(0, 0, 0, 0);
+                
+                if (selectedDateObj < tomorrowDateObj) {
+                    errorMessage.textContent = '⚠ Запись возможна минимум за 24 часа';
+                    errorMessage.style.display = 'block';
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+                
+                // Проверка времени - минимум 24 часа от текущего момента
+                const [selectedHour, selectedMinute] = formData.consultationTime.split(':').map(Number);
+                const consultationDateTime = new Date(formData.consultationDate + 'T' + formData.consultationTime + ':00');
+                const timeDiffMs = consultationDateTime - now;
+                const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
+                
+                if (timeDiffHours < 24) {
+                    errorMessage.textContent = '⚠ Необходимо минимум 24 часа до начала консультации';
+                    errorMessage.style.display = 'block';
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    return;
+                }
+            }
+            
+            // Telegram username validation
+            const telegramUsername = formData.telegram.substring(1);
+            const telegramInfo = document.getElementById('telegramInfo');
+            const telegramField = document.getElementById('telegram');
+            
+            if (!formData.telegram.startsWith('@') || telegramUsername.length < 5) {
+                telegramInfo.textContent = '⚠ Должен начинаться с @ и содержать минимум 5 символов';
+                telegramInfo.style.color = '#ef4444';
+                telegramField.style.borderColor = '#ef4444';
+                telegramField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            
+            if (!/^[a-zA-Z0-9_]+$/.test(telegramUsername)) {
+                telegramInfo.textContent = '⚠ Только латинские буквы, цифры и _';
+                telegramInfo.style.color = '#ef4444';
+                telegramField.style.borderColor = '#ef4444';
+                telegramField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                return;
+            }
+            
+            // Сброс стилей если всё ок
+            telegramInfo.textContent = 'Начинается с @, минимум 5 символов';
+            telegramInfo.style.color = 'var(--text-secondary)';
+            telegramField.style.borderColor = 'rgba(0, 245, 255, 0.2)';
+            
+            // Disable button and show loading
+            submitBtn.disabled = true;
+            btnText.innerHTML = 'Отправка <span class="loading"></span>';
+            
+            try {
+                // ПРОВЕРКА КОЛЛИЗИЙ: проверяем ещё раз перед отправкой (пропускаем для пакета)
+                if (formData.consultationType !== 'package') {
+                    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxX9Y_FN0YV54P-b3oTFUwmaszgQ2YGBJ9-US4s3MgAExHfDH8Ba7ZgKKkMjmdB7SEj/exec';
+                    const checkResponse = await fetch(
+                        `${GOOGLE_SCRIPT_URL}?action=checkAvailability&date=${formData.consultationDate}&clientOffset=${clientTimezoneOffset}`
+                    );
+                    
+                    const checkData = await checkResponse.json();
+                    
+                    if (checkData.status === 'success') {
+                        // Проверяем доступен ли выбранный слот
+                        if (!checkData.availableSlots.includes(formData.consultationTime)) {
+                            errorMessage.textContent = '⚠ К сожалению, это время только что заняли';
+                            errorMessage.style.display = 'block';
+                            errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            
+                            // Показываем кнопку поиска свободного времени
+                            const findFreeSlotContainer = document.getElementById('findFreeSlotContainer');
+                            if (findFreeSlotContainer) {
+                                findFreeSlotContainer.style.display = 'block';
+                                findFreeSlotContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                            
+                            return;
+                        }
+                    }
+                }
+                
+                // Send to Google Sheets
+                await sendToGoogleSheets(formData);
+                
+                // Create Google Calendar event
+                await createGoogleCalendarEvent(formData);
+                
+                // Telegram уведомление теперь отправляется из Apps Script
+                
+                // Show success
+                successMessage.style.display = 'block';
+                
+                // Сначала прокручиваем, потом сбрасываем
+                successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Небольшая задержка перед сбросом формы
+                setTimeout(() => {
+                    form.reset();
+                    
+                    // Очищаем динамические слоты
+                    document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+                    selectedTimeInput.value = '';
+                    
+                    // Сбрасываем контейнер слотов
+                    const timeSlotsContainer = document.getElementById('timeSlotsContainer');
+                    timeSlotsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">Сначала выберите дату консультации ☝️</p>';
+                }, 300);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.textContent = '⚠ Ошибка отправки. Попробуйте ещё раз или свяжитесь напрямую.';
+                errorMessage.style.display = 'block';
+                errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } finally {
+                submitBtn.disabled = false;
+                btnText.textContent = 'Записаться на консультацию';
+            }
+        });
+
+        // Google Sheets Integration
+        async function sendToGoogleSheets(data) {
+            // ВАЖНО: Замените на ваш Google Apps Script Web App URL
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxX9Y_FN0YV54P-b3oTFUwmaszgQ2YGBJ9-US4s3MgAExHfDH8Ba7ZgKKkMjmdB7SEj/exec';
+            
+            const payload = {
+                fullName: data.fullName,
+                phone: data.phone,
+                telegram: data.telegram,
+                consultationType: data.consultationType,
+                consultationDate: data.consultationDate,
+                consultationTime: data.consultationTime, // ВАШЕ время
+                clientTime: data.clientTime, // Время клиента
+                clientTimezone: data.clientTimezone, // Часовой пояс
+                comments: data.comments,
+                timestamp: data.timestamp
+            };
+            
+            // Отправка данных в Google Sheets
+            const response = await fetch(GOOGLE_SCRIPT_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            // Игнорируем ответ (no-cors режим)
+            console.log('Данные отправлены в Google Sheets:', payload);
+            return Promise.resolve();
+        }
+
+        // Google Calendar Integration
+        async function createGoogleCalendarEvent(data) {
+            // Это требует OAuth 2.0 авторизации
+            // Для полной интеграции используйте Google Calendar API
+            
+            const eventDetails = {
+                summary: `AI Консультация - ${data.fullName}`,
+                description: `
+Клиент: ${data.fullName}
+Телефон: ${data.phone}
+Telegram: ${data.telegram}
+Тип: ${data.consultationType}
+Комментарии: ${data.comments}
+                `.trim(),
+                start: {
+                    dateTime: `${data.consultationDate}T${data.consultationTime}:00`,
+                    timeZone: 'Europe/Moscow'
+                },
+                end: {
+                    dateTime: `${data.consultationDate}T${parseInt(data.consultationTime.split(':')[0]) + 1}:00:00`,
+                    timeZone: 'Europe/Moscow'
+                }
+            };
+            
+            console.log('Событие для Google Calendar:', eventDetails);
+            
+            // Для упрощённой версии - создать ссылку на добавление в календарь
+            const calendarUrl = createGoogleCalendarLink(data);
+            console.log('Ссылка на календарь:', calendarUrl);
+            
+            return Promise.resolve();
+        }
+
+        // Create Google Calendar link
+        function createGoogleCalendarLink(data) {
+            const startDate = data.consultationDate.replace(/-/g, '');
+            const startTime = data.consultationTime.replace(':', '') + '00';
+            const endTime = (parseInt(data.consultationTime.split(':')[0]) + 1).toString().padStart(2, '0') + '0000';
+            
+            const params = new URLSearchParams({
+                action: 'TEMPLATE',
+                text: `AI Консультация - ${data.fullName}`,
+                dates: `${startDate}T${startTime}/${startDate}T${endTime}`,
+                details: `Клиент: ${data.fullName}\nТелефон: ${data.phone}\nTelegram: ${data.telegram}\nТип: ${data.consultationType}`,
+                location: 'Online'
+            });
+            
+            return `https://calendar.google.com/calendar/render?${params.toString()}`;
+        }
+
+        // Telegram Integration
+        function sendToTelegram(data) {
+            const TELEGRAM_BOT_TOKEN = '8596783518:AAH7C8jheZC_95gFvZGDvLp6eH_v4hvYryE';
+            const TELEGRAM_CHAT_ID = '7823521532';
+            
+            const message = `
+🧠 <b>Новая заявка на AI-консультацию!</b>
+
+👤 <b>ФИО:</b> ${data.fullName}
+📱 <b>Телефон:</b> ${data.phone}
+💬 <b>Telegram:</b> ${data.telegram}
+
+📋 <b>Тип:</b> ${data.consultationType}
+📅 <b>Дата:</b> ${data.consultationDate}
+
+⏰ <b>ВАШЕ ВРЕМЯ:</b> ${data.consultationTime} (Екатеринбург, UTC+5)
+🕐 <b>Время клиента:</b> ${data.clientTime} (${data.clientTimezone})
+
+💭 <b>Комментарий:</b>
+${data.comments || 'Не указан'}
+
+🕐 <b>Получено:</b> ${new Date(data.timestamp).toLocaleString('ru-RU')}
+            `.trim();
+            
+            // Раскомментируйте после добавления токена
+            
+            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text: message,
+                    parse_mode: 'HTML'
+                })
+            })
+            .then(response => response.json())
+            .then(data => console.log('Отправлено в Telegram:', data))
+            .catch(error => console.error('Ошибка Telegram:', error));
+            
+            
+            console.log('Сообщение для Telegram:', message);
+        }
+    </script>
 </body>
 </html>
-
