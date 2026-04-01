@@ -584,8 +584,6 @@
         // ============================================
         // TELEGRAM INTEGRATION
         // ============================================
-        // TELEGRAM INTEGRATION
-        // ============================================
         let tg = window.Telegram?.WebApp;
         let isTelegramApp = false;
         
@@ -609,9 +607,9 @@
             на самой форме для отладки интеграции.
             
             Для включения отладки:
-            1. Раскомментируйте HTML блок debugInfo выше (строка ~450)
-            2. Раскомментируйте строку "const debugInfo = ..." (строка ~559)
-            3. Раскомментируйте блоки ниже (строки 571-577 и 593-595)
+            1. Раскомментируйте HTML блок debugInfo выше
+            2. Раскомментируйте строку "const debugInfo = ..." выше
+            3. Раскомментируйте блоки ниже
             
             debugInfo.style.display = 'block';
             debugInfo.innerHTML = `
@@ -707,7 +705,6 @@
         const phoneInput = document.getElementById('phone');
         const telegramInput = document.getElementById('telegram');
         const dateInput = document.getElementById('consultationDate');
-        // const timeSlots = document.querySelectorAll('.time-slot'); // Не нужно - слоты динамические
         const selectedTimeInput = document.getElementById('selectedTime');
 
         // Set minimum date to tomorrow (запись минимум за 24 часа)
@@ -733,7 +730,6 @@
         
         consultationTypeSelect.addEventListener('change', function() {
             if (this.value === 'package') {
-                // Блокируем все слоты и показываем сообщение
                 timeSlotsContainer.innerHTML = `
                     <div style="
                         padding: 20px;
@@ -749,14 +745,12 @@
                         </p>
                     </div>
                 `;
-                selectedTimeInput.value = 'package'; // Специальное значение для пакета
+                selectedTimeInput.value = 'package';
                 selectedTimeInput.removeAttribute('required');
             } else {
-                // Возвращаем обычное состояние
                 selectedTimeInput.value = '';
                 selectedTimeInput.setAttribute('required', 'required');
                 
-                // Если дата уже выбрана - перезагружаем слоты
                 if (dateInput.value) {
                     const event = new Event('change', { bubbles: true });
                     dateInput.dispatchEvent(event);
@@ -822,12 +816,6 @@
         });
 
         // ============================================
-        // TIME SLOT HANDLERS
-        // ============================================
-        // Обработчики кликов теперь добавляются динамически
-        // при генерации слотов в функции проверки доступности
-
-        // ============================================
         // ПРОВЕРКА ДОСТУПНОСТИ СЛОТОВ С КОНВЕРСИЕЙ
         // ============================================
         dateInput.addEventListener('change', async function() {
@@ -837,7 +825,6 @@
             const timeSlotsContainer = document.getElementById('timeSlotsContainer');
             const findFreeSlotContainer = document.getElementById('findFreeSlotContainer');
             
-            // Показываем индикатор загрузки
             timeSlotsContainer.innerHTML = '<p style="color: var(--primary-color); font-size: 14px; padding: 15px;">⏳ Загрузка доступных слотов...</p>';
             timeSlotsContainer.style.opacity = '0.5';
             timeSlotsContainer.style.pointerEvents = 'none';
@@ -853,62 +840,49 @@
                 
                 if (data.status === 'success') {
                     const now = new Date();
-                    const currentHourClient = now.getHours();
-                    const currentMinuteClient = now.getMinutes();
                     
-                    // Проверяем не выбрана ли прошлая дата
                     const selectedDateObj = new Date(selectedDate + 'T00:00:00');
                     const todayDateObj = new Date(today + 'T00:00:00');
                     const isPastDate = selectedDateObj < todayDateObj;
-                    const isToday = selectedDate === today;
                     
-                    // Если выбрана прошлая дата - показываем сообщение
                     if (isPastDate) {
                         timeSlotsContainer.innerHTML = '<p style="color: #ef4444; font-size: 14px; padding: 15px;">⚠️ Нельзя выбрать прошедшую дату</p>';
                         return;
                     }
                     
-                    // Очищаем старые слоты
                     timeSlotsContainer.innerHTML = '';
                     
                     let freeCount = 0;
                     
-                    // Генерируем ВСЕ слоты (свободные + занятые)
                     data.allSlots.forEach(myTimeSlot => {
                         const [myHour, myMinute] = myTimeSlot.split(':').map(Number);
                         
-                        // Конвертируем в время клиента
                         const clientHour = myHour + timeDifferenceHours;
                         const clientTime = formatTime(clientHour);
                         
-                        // Проверяем занятость в календаре
                         const isBooked = data.bookedSlots.includes(myTimeSlot);
                         
                         let isDisabled = false;
                         let reason = '';
                         
-                        // Проверка 1: Занято в календаре (ПРИОРИТЕТ)
                         if (isBooked) {
                             isDisabled = true;
                             reason = 'Занято';
                         }
                         
-                        // Проверка 2: Абсолютное время - меньше 24 часов от текущего момента
-                        // (только если ещё не заблокировано календарём)
                         if (!isDisabled) {
                             const slotDateTime = new Date(selectedDate + 'T' + formatTime(clientHour) + ':00');
                             const nowDateTime = new Date();
                             const timeDiffMs = slotDateTime - nowDateTime;
-                            const timeDiffMinutes = timeDiffMs / (1000 * 60);
-                            const timeDiffHours = timeDiffMinutes / 60;
+                            const timeDiffHours = timeDiffMs / (1000 * 60);
+                            const timeDiffHoursReal = timeDiffMs / (1000 * 60 * 60);
                             
-                            if (timeDiffHours < 24) {
+                            if (timeDiffHoursReal < 24) {
                                 isDisabled = true;
-                                reason = timeDiffHours < 0 ? 'Прошло' : 'Менее 24ч';
+                                reason = timeDiffHoursReal < 0 ? 'Прошло' : 'Менее 24ч';
                             }
                         }
                         
-                        // Создаём элемент слота
                         const slotEl = document.createElement('div');
                         slotEl.className = 'time-slot';
                         slotEl.setAttribute('data-time', myTimeSlot);
@@ -922,7 +896,6 @@
                             slotEl.style.pointerEvents = 'none';
                             slotEl.title = reason;
                             
-                            // Добавляем текст причины
                             const reasonEl = document.createElement('span');
                             reasonEl.style.display = 'block';
                             reasonEl.style.fontSize = '11px';
@@ -946,7 +919,6 @@
                         timeSlotsContainer.appendChild(slotEl);
                     });
                     
-                    // Если все слоты заняты - показываем кнопку поиска
                     if (freeCount === 0) {
                         findFreeSlotContainer.style.display = 'block';
                     }
@@ -979,7 +951,6 @@
             try {
                 const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxX9Y_FN0YV54P-b3oTFUwmaszgQ2YGBJ9-US4s3MgAExHfDH8Ba7ZgKKkMjmdB7SEj/exec';
                 
-                // Ищем ближайшую свободную дату (проверяем следующие 5 дней)
                 const startDate = new Date(dateInput.value);
                 let foundDate = null;
                 let foundSlots = null;
@@ -1005,14 +976,9 @@
                 }
                 
                 if (foundDate) {
-                    // Подставляем найденную дату
                     dateInput.value = foundDate;
-                    
-                    // Триггерим событие change для загрузки слотов
                     const event = new Event('change', { bubbles: true });
                     dateInput.dispatchEvent(event);
-                    
-                    // Прокручиваем к слотам
                     document.getElementById('timeSlotsContainer').scrollIntoView({ 
                         behavior: 'smooth', 
                         block: 'center' 
@@ -1030,18 +996,17 @@
             }
         });
 
-        // Form submission
+        // ============================================
+        // ОТПРАВКА ФОРМЫ
+        // ============================================
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            // Hide previous messages
             successMessage.style.display = 'none';
             errorMessage.style.display = 'none';
             
-            // Get consultation type first
             const consultationType = document.getElementById('consultationType').value;
             
-            // Validate time selection (skip for package)
             if (!selectedTimeInput.value && consultationType !== 'package') {
                 errorMessage.textContent = '⚠ Пожалуйста, выберите время консультации';
                 errorMessage.style.display = 'block';
@@ -1049,22 +1014,20 @@
                 return;
             }
             
-            // Get form data
             const formData = {
                 fullName: document.getElementById('fullName').value.trim(),
                 phone: document.getElementById('phone').value.trim(),
                 telegram: document.getElementById('telegram').value.trim(),
                 consultationType: document.getElementById('consultationType').value,
                 consultationDate: document.getElementById('consultationDate').value,
-                consultationTime: selectedTimeInput.value, // ВАШЕ время (UTC+5)
-                clientTime: selectedTimeInput.getAttribute('data-client-time') || selectedTimeInput.value, // Время клиента
+                consultationTime: selectedTimeInput.value,
+                clientTime: selectedTimeInput.getAttribute('data-client-time') || selectedTimeInput.value,
                 clientTimezone: `${clientTimezoneName} (UTC${clientTimezoneOffset >= 0 ? '+' : ''}${clientTimezoneOffset / 60})`,
                 clientTimezoneOffset: clientTimezoneOffset,
                 comments: document.getElementById('comments').value.trim(),
                 timestamp: new Date().toISOString()
             };
             
-            // Validate
             if (!formData.fullName || !formData.phone || !formData.telegram || 
                 !formData.consultationType || !formData.consultationDate) {
                 errorMessage.textContent = '⚠ Пожалуйста, заполните все обязательные поля';
@@ -1073,9 +1036,7 @@
                 return;
             }
             
-            // Проверка даты и времени (пропускаем для пакета)
             if (formData.consultationType !== 'package') {
-                // Проверка даты - минимум завтра
                 const now = new Date();
                 const selectedDateObj = new Date(formData.consultationDate + 'T00:00:00');
                 const tomorrowDateObj = new Date(now);
@@ -1089,8 +1050,6 @@
                     return;
                 }
                 
-                // Проверка времени - минимум 24 часа от текущего момента
-                const [selectedHour, selectedMinute] = formData.consultationTime.split(':').map(Number);
                 const consultationDateTime = new Date(formData.consultationDate + 'T' + formData.consultationTime + ':00');
                 const timeDiffMs = consultationDateTime - now;
                 const timeDiffHours = timeDiffMs / (1000 * 60 * 60);
@@ -1103,7 +1062,6 @@
                 }
             }
             
-            // Telegram username validation
             const telegramUsername = formData.telegram.substring(1);
             const telegramInfo = document.getElementById('telegramInfo');
             const telegramField = document.getElementById('telegram');
@@ -1124,17 +1082,15 @@
                 return;
             }
             
-            // Сброс стилей если всё ок
             telegramInfo.textContent = 'Начинается с @, минимум 5 символов';
             telegramInfo.style.color = 'var(--text-secondary)';
             telegramField.style.borderColor = 'rgba(0, 245, 255, 0.2)';
             
-            // Disable button and show loading
             submitBtn.disabled = true;
             btnText.innerHTML = 'Отправка <span class="loading"></span>';
             
             try {
-                // ПРОВЕРКА КОЛЛИЗИЙ: проверяем ещё раз перед отправкой (пропускаем для пакета)
+                // ПРОВЕРКА КОЛЛИЗИЙ перед отправкой (пропускаем для пакета)
                 if (formData.consultationType !== 'package') {
                     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxX9Y_FN0YV54P-b3oTFUwmaszgQ2YGBJ9-US4s3MgAExHfDH8Ba7ZgKKkMjmdB7SEj/exec';
                     const checkResponse = await fetch(
@@ -1144,48 +1100,32 @@
                     const checkData = await checkResponse.json();
                     
                     if (checkData.status === 'success') {
-                        // Проверяем доступен ли выбранный слот
                         if (!checkData.availableSlots.includes(formData.consultationTime)) {
                             errorMessage.textContent = '⚠ К сожалению, это время только что заняли';
                             errorMessage.style.display = 'block';
                             errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             
-                            // Показываем кнопку поиска свободного времени
                             const findFreeSlotContainer = document.getElementById('findFreeSlotContainer');
                             if (findFreeSlotContainer) {
                                 findFreeSlotContainer.style.display = 'block';
                                 findFreeSlotContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             }
-                            
                             return;
                         }
                     }
                 }
                 
-                // Send to Google Sheets
+                // Отправка в Google Sheets (Apps Script сам отправит уведомление в Telegram)
                 await sendToGoogleSheets(formData);
                 
-                // Create Google Calendar event
-                await createGoogleCalendarEvent(formData);
-                
-                // Send to Telegram (optional)
-                sendToTelegram(formData);
-                
-                // Show success
+                // Показываем успех
                 successMessage.style.display = 'block';
-                
-                // Сначала прокручиваем, потом сбрасываем
                 successMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 
-                // Небольшая задержка перед сбросом формы
                 setTimeout(() => {
                     form.reset();
-                    
-                    // Очищаем динамические слоты
                     document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
                     selectedTimeInput.value = '';
-                    
-                    // Сбрасываем контейнер слотов
                     const timeSlotsContainer = document.getElementById('timeSlotsContainer');
                     timeSlotsContainer.innerHTML = '<p style="color: var(--text-secondary); font-size: 14px; padding: 15px;">Сначала выберите дату консультации ☝️</p>';
                 }, 300);
@@ -1201,9 +1141,13 @@
             }
         });
 
-        // Google Sheets Integration
+        // ============================================
+        // GOOGLE SHEETS INTEGRATION
+        // Уведомление в Telegram теперь отправляется
+        // автоматически из Apps Script (doPost)
+        // Токен бота надёжно хранится на сервере
+        // ============================================
         async function sendToGoogleSheets(data) {
-            // ВАЖНО: Замените на ваш Google Apps Script Web App URL
             const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxX9Y_FN0YV54P-b3oTFUwmaszgQ2YGBJ9-US4s3MgAExHfDH8Ba7ZgKKkMjmdB7SEj/exec';
             
             const payload = {
@@ -1212,14 +1156,13 @@
                 telegram: data.telegram,
                 consultationType: data.consultationType,
                 consultationDate: data.consultationDate,
-                consultationTime: data.consultationTime, // ВАШЕ время
-                clientTime: data.clientTime, // Время клиента
-                clientTimezone: data.clientTimezone, // Часовой пояс
+                consultationTime: data.consultationTime,
+                clientTime: data.clientTime,
+                clientTimezone: data.clientTimezone,
                 comments: data.comments,
                 timestamp: data.timestamp
             };
             
-            // Отправка данных в Google Sheets
             const response = await fetch(GOOGLE_SCRIPT_URL, {
                 method: 'POST',
                 mode: 'no-cors',
@@ -1231,101 +1174,6 @@
             
             console.log('Данные отправлены в Google Sheets:', payload);
             return Promise.resolve();
-        }
-
-        // Google Calendar Integration
-        async function createGoogleCalendarEvent(data) {
-            // Это требует OAuth 2.0 авторизации
-            // Для полной интеграции используйте Google Calendar API
-            
-            const eventDetails = {
-                summary: `AI Консультация - ${data.fullName}`,
-                description: `
-Клиент: ${data.fullName}
-Телефон: ${data.phone}
-Telegram: ${data.telegram}
-Тип: ${data.consultationType}
-Комментарии: ${data.comments}
-                `.trim(),
-                start: {
-                    dateTime: `${data.consultationDate}T${data.consultationTime}:00`,
-                    timeZone: 'Europe/Moscow'
-                },
-                end: {
-                    dateTime: `${data.consultationDate}T${parseInt(data.consultationTime.split(':')[0]) + 1}:00:00`,
-                    timeZone: 'Europe/Moscow'
-                }
-            };
-            
-            console.log('Событие для Google Calendar:', eventDetails);
-            
-            // Для упрощённой версии - создать ссылку на добавление в календарь
-            const calendarUrl = createGoogleCalendarLink(data);
-            console.log('Ссылка на календарь:', calendarUrl);
-            
-            return Promise.resolve();
-        }
-
-        // Create Google Calendar link
-        function createGoogleCalendarLink(data) {
-            const startDate = data.consultationDate.replace(/-/g, '');
-            const startTime = data.consultationTime.replace(':', '') + '00';
-            const endTime = (parseInt(data.consultationTime.split(':')[0]) + 1).toString().padStart(2, '0') + '0000';
-            
-            const params = new URLSearchParams({
-                action: 'TEMPLATE',
-                text: `AI Консультация - ${data.fullName}`,
-                dates: `${startDate}T${startTime}/${startDate}T${endTime}`,
-                details: `Клиент: ${data.fullName}\nТелефон: ${data.phone}\nTelegram: ${data.telegram}\nТип: ${data.consultationType}`,
-                location: 'Online'
-            });
-            
-            return `https://calendar.google.com/calendar/render?${params.toString()}`;
-        }
-
-        // Telegram Integration
-        function sendToTelegram(data) {
-            const TELEGRAM_BOT_TOKEN = '8596783518:AAH7C8jheZC_95gFvZGDvLp6eH_v4hvYryE';
-            const TELEGRAM_CHAT_ID = '7823521532';
-            
-            const message = `
-🧠 <b>Новая заявка на AI-консультацию!</b>
-
-👤 <b>ФИО:</b> ${data.fullName}
-📱 <b>Телефон:</b> ${data.phone}
-💬 <b>Telegram:</b> ${data.telegram}
-
-📋 <b>Тип:</b> ${data.consultationType}
-📅 <b>Дата:</b> ${data.consultationDate}
-
-⏰ <b>ВАШЕ ВРЕМЯ:</b> ${data.consultationTime} (Екатеринбург, UTC+5)
-🕐 <b>Время клиента:</b> ${data.clientTime} (${data.clientTimezone})
-
-💭 <b>Комментарий:</b>
-${data.comments || 'Не указан'}
-
-🕐 <b>Получено:</b> ${new Date(data.timestamp).toLocaleString('ru-RU')}
-            `.trim();
-            
-            // Раскомментируйте после добавления токена
-            
-            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    chat_id: TELEGRAM_CHAT_ID,
-                    text: message,
-                    parse_mode: 'HTML'
-                })
-            })
-            .then(response => response.json())
-            .then(data => console.log('Отправлено в Telegram:', data))
-            .catch(error => console.error('Ошибка Telegram:', error));
-            
-            
-            console.log('Сообщение для Telegram:', message);
         }
     </script>
 </body>
