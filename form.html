@@ -1115,8 +1115,11 @@
                     }
                 }
                 
-                // Отправка в Google Sheets (Apps Script сам отправит уведомление в Telegram)
+                // Отправка в Google Sheets (+ Calendar через Apps Script)
                 await sendToGoogleSheets(formData);
+                
+                // Уведомление в Telegram
+                sendToTelegram(formData);
                 
                 // Показываем успех
                 successMessage.style.display = 'block';
@@ -1142,10 +1145,47 @@
         });
 
         // ============================================
+        // TELEGRAM NOTIFICATION (прямой вызов из браузера)
+        // ============================================
+        function sendToTelegram(data) {
+            const TELEGRAM_BOT_TOKEN = '8596783518:AAH7C8jheZC_95gFvZGDvLp6eH_v4hvYryE';
+            const TELEGRAM_CHAT_ID = '7823521532';
+            
+            const message = `
+🧠 <b>Новая заявка на AI-консультацию!</b>
+
+👤 <b>ФИО:</b> ${data.fullName}
+📱 <b>Телефон:</b> ${data.phone}
+💬 <b>Telegram:</b> ${data.telegram}
+
+📋 <b>Тип:</b> ${data.consultationType}
+📅 <b>Дата:</b> ${data.consultationDate}
+
+⏰ <b>ВАШЕ ВРЕМЯ:</b> ${data.consultationTime} (Екатеринбург, UTC+5)
+🕐 <b>Время клиента:</b> ${data.clientTime} (${data.clientTimezone})
+
+💭 <b>Комментарий:</b>
+${data.comments || 'Не указан'}
+
+🕐 <b>Получено:</b> ${new Date(data.timestamp).toLocaleString('ru-RU')}
+            `.trim();
+            
+            fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: TELEGRAM_CHAT_ID,
+                    text: message,
+                    parse_mode: 'HTML'
+                })
+            })
+            .then(r => r.json())
+            .then(d => console.log('Telegram ответ:', d))
+            .catch(err => console.error('Ошибка Telegram:', err));
+        }
+
+        // ============================================
         // GOOGLE SHEETS INTEGRATION
-        // Уведомление в Telegram теперь отправляется
-        // автоматически из Apps Script (doPost)
-        // Токен бота надёжно хранится на сервере
         // ============================================
         async function sendToGoogleSheets(data) {
             const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxX9Y_FN0YV54P-b3oTFUwmaszgQ2YGBJ9-US4s3MgAExHfDH8Ba7ZgKKkMjmdB7SEj/exec';
